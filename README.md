@@ -49,7 +49,7 @@ To use the `Signatures` tool, which uses MPI <https://en.wikipedia.org/wiki/Mess
 Finally,
 
     # Install DSGRN
-    git clone https://github.com/shaunharker/DSGRN.git
+    git clone https://github.com/marciogameiro/DSGRN.git
     cd DSGRN
     ./install.sh
 
@@ -60,7 +60,7 @@ However, you cannot `pip install` due to permissions issues. In this case one so
 
     pip install mpi4py --user
     # Install DSGRN
-    git clone https://github.com/shaunharker/DSGRN.git
+    git clone https://github.com/marciogameiro/DSGRN.git
     cd DSGRN
     ./install.sh --user
 
@@ -156,7 +156,7 @@ For missing dependencies, you'll need to contact your system admin.
 For python modules, you can pass the `--user` flag:
 
     # Install DSGRN
-    git clone https://github.com/shaunharker/DSGRN.git
+    git clone https://github.com/marciogameiro/DSGRN.git
     cd DSGRN
     ./install.sh --user
 
