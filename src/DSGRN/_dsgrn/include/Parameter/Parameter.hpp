@@ -264,9 +264,14 @@ inequalities ( void ) const {
   // output_string
   //   Given an output edge j, output the THETA variable associated with it
   auto output_string = [&](uint64_t j, uint64_t d ) {
-    uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
     std::string const& node_name = network() . name ( d );
-    std::string target_name = network() . name(target);
+    uint64_t m = network() . outputs ( d ) . size ();
+    // For case m == 0 (no out edges)
+    std::string target_name = "->";
+    if ( m > 0 ) {
+      uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
+      target_name = network() . name(target);
+    }
     std::stringstream output_ss;
     output_ss << "T[" << node_name << "," << target_name << "]";
     return output_ss . str ();
@@ -316,7 +321,9 @@ inequalities ( void ) const {
   for ( uint64_t d = 0; d < D; ++ d ) {
     if ( outerfirst ) outerfirst = false; else ss << " && ";
     uint64_t n = network() . inputs ( d ) . size ();
-    uint64_t m = network() . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = network() . outputs ( d ) . size () ? network() . outputs ( d ) . size () : 1;
+    // uint64_t m = network() . outputs ( d ) . size ();
     uint64_t N = ( 1LL << n );
     // Output all inequalities comparing input formulas to thresholds
     bool first = true;
@@ -366,7 +373,9 @@ inequalities ( void ) const {
   outerfirst = true;
   for ( uint64_t d = 0; d < D; ++ d ) {
     uint64_t n = network() . inputs ( d ) . size ();
-    uint64_t m = network() . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = network() . outputs ( d ) . size () ? network() . outputs ( d ) . size () : 1;
+    // uint64_t m = network() . outputs ( d ) . size ();
     if ( outerfirst ) outerfirst = false; else ss << ", ";
     for ( uint64_t i = 0; i < n; ++ i ) {
       ss << "L" << input_string ( i, d ) << ", ";
