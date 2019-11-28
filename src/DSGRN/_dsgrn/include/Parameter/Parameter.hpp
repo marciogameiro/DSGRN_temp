@@ -202,12 +202,16 @@ labelling ( void ) const {
       // Zone 1. (Flows to right.)
       if ( bin > left ) {
         lower_limits [ d ] = left;
-        upper_limits [ d ] = bin;
+        // "Bug" fix to account for self repressor
+        upper_limits [ d ] = std::min ( right, bin );
+        // upper_limits [ d ] = bin;
         apply_mask (1LL << (D+d));
       }
       // Zone 2. (Flows to left.)
       if ( bin+1 < right ) {
-        lower_limits [ d ] = bin + 1;
+        // "Bug" fix to account for self repressor
+        lower_limits [ d ] = std::max ( left, bin + 1);
+        // lower_limits [ d ] = bin + 1;
         upper_limits [ d ] = right;
         apply_mask (1LL << d);
       }
