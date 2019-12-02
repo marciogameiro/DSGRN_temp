@@ -118,7 +118,8 @@ assign_extended ( Parameter const& parameter ) {
       // bool activating = parameter . network () . interaction ( source, d );
       if ( not parameter . network () . interaction ( source, d ) ) {  // if not activating
         data_ -> self_repressor_ [d] = true;
-        self_thres_pos [d] = parameter . network () . order ( source, d );
+        uint64_t outorder = parameter . network () . order ( source, d );
+        self_thres_pos [d] = parameter . order() [ source ] . inverse ( outorder );
       }
     }
     limits_ext [ d ] = not data_ -> self_repressor_ [d] ? limits [ d ] : limits [ d ] + 1;
