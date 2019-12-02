@@ -102,6 +102,23 @@ domains ( void ) const {
   return result;
 }
 
+INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
+domains_ext ( void ) const {
+  std::vector<uint64_t> result = domains ();
+  uint64_t D = size ();
+  for ( uint64_t d = 0; d < D; ++ d ) {
+    // Check if node d is a self repressor
+    std::vector<uint64_t> inputs = data_ -> inputs_ [d];
+    if ( std::find( inputs . begin(), inputs . end(), d ) != inputs . end() ) {
+      uint64_t source = d;
+      // bool activating = interaction ( source, d );
+      if ( not interaction ( source, d ) ) // if not activating
+        result [ d ] += 1;
+    }
+  }
+  return result;
+}
+
 INLINE_IF_HEADER_ONLY std::string Network::
 specification ( void ) const {
   return data_ -> specification_;

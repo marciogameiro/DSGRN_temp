@@ -88,6 +88,14 @@ public:
   std::vector<uint64_t>
   domains ( void ) const;
 
+  /// domains_ext
+  ///   Return a list consisting of the number of extended
+  ///   domains across (i.e. number of out-edges plus one
+  ///   or plus two for self repressing edges)
+  ///   for each dimension (i.e. network node)
+  std::vector<uint64_t>
+  domains_ext ( void ) const;
+
   /// specification
   ///    Return the specification string (i.e. network spec file)
   std::string
@@ -147,6 +155,7 @@ NetworkBinding (py::module &m) {
     .def("interaction", &Network::interaction)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
+    .def("domains_ext", &Network::domains_ext)
     .def("specification", &Network::specification)
     .def("graphviz", [](Network const& network){ return network.graphviz();})
     .def(py::pickle(
