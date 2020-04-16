@@ -18,20 +18,72 @@ which can then be queried for further research.
 
 ## Installation
 
+To install DSGRN we will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see below) installed on your system, you can install DSGRN with the following command:
+
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/marciogameiro/DSGRN.git
+
+Alternatively, you can clone the GitHub repository and install with:
+
+	git clone https://github.com/marciogameiro/DSGRN.git
+	cd DSGRN
+	./install.sh
+
+Continue reading for some options on how to install all the dependencies if they are not installed or if the above fails. On a Mac usually the C++ compiler and the Python provided by Apple fail to install DSGRN, so you may need to install new versions as described below. 
+
 ### Dependencies
 
 * Modern C++ compiler
-* sqlite3
 * Python3
+* CMake
+* Graphviz
+* progressbar2
+* pyCHomP
 * Jupyter Notebook
 * Open MPI and mpi4py (optional)
 
-### Installation on macOS
 
-    # Install Modern C++
-    xcode-select --install    # Then click "install" button on dialog
-    # Install Homebrew <https://brew.sh>, an open source package manager
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+### Installation on macOS with Homebrew (recommended)
+
+Install Homebrew with the command:
+
+	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+
+Use Homebrew to install Python 3 and the GCC compilers (as the ones provided by Apple usually fail):
+
+	brew install python
+	brew install gcc
+
+Now, when installing the additional dependencies below and when running DSGRN you need to make sure that you are using the Python 3, and the corresponding pip, installed by Homebrew. They are usually called `python3` and `pip3` and are installed at `/usr/local/bin/python3` and `/usr/local/bin/pip3` (you can make sure this is the case by typing `brew info python` and checking the output). You can keep things like this and use `python3` and `pip3` from now on or you can make aliases with the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3`. To make these aliases available to all future terminal sessions, you can add them to the shell configuration file:
+
+	echo "alias python=/usr/local/bin/python3" >> ~/.bash_profile
+	echo "alias pip=/usr/local/bin/pip3" >> ~/.bash_profile
+
+This is not the best way to manage multiple Python version (see <https://opensource.com/article/19/5/python-3-default-mac>), but it is good enough for our purposes.
+
+We also need to make sure that the GCC compilers we installed with Homebrews are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typping:
+
+	echo "export CXX=g++-9"" >> ~/.bash_profile
+	echo "export CC=gcc-9"" >> ~/.bash_profile
+
+We also need to install a few more dependencies with Homebrew
+
+	brew install cmake
+	brew install graphviz
+	brew install openmpi
+
+and the Python depencies
+
+	pip install progressbar2 mpi4py jupyter ipython
+
+and pyCHomP
+
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/shaunharker/pyCHomP.git
+
+We can finally install DSGRN with (or by clonning the repo as described above):
+
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/marciogameiro/DSGRN.git
+
+### Installation with Anaconda
 
 You will also want `python3`; both homebrew's python and Anaconda3 have been tested.
 
