@@ -18,9 +18,9 @@ which can then be queried for further research.
 
 ## Installation
 
-To install DSGRN we will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see below) installed on your system, you can install DSGRN with the following command:
+To install DSGRN you will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see below) installed on your system, all you need to do to install DSGRN on your system is to run the following command on the terminal:
 
-	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/marciogameiro/DSGRN.git
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/marciogameiro/DSGRN.git
 
 Alternatively, you can clone the GitHub repository and install with:
 
@@ -28,9 +28,11 @@ Alternatively, you can clone the GitHub repository and install with:
 	cd DSGRN
 	./install.sh
 
-Continue reading for some options on how to install all the dependencies if they are not installed or if the above fails. On a Mac usually the C++ compiler and the Python provided by Apple fail to install DSGRN, so you may need to install new versions as described below. 
+If you don't have all the dependencies installed or if the above fails continue reading for options on how to proceed. On a Mac installing DSGRN as above usually fails with the C++ compiler and the Python provided by Apple. In that case you may need to install new versions as described below.
 
-### Dependencies
+## Dependencies
+
+DSGRN needs the follwoing dependencies installed on your system:
 
 * Modern C++ compiler
 * Python3
@@ -41,90 +43,100 @@ Continue reading for some options on how to install all the dependencies if they
 * Jupyter Notebook
 * Open MPI and mpi4py (optional)
 
+## Installation on macOS with Homebrew (recommended)
 
-### Installation on macOS with Homebrew (recommended)
+First install macOS Command Line Tools with the command:
 
-Install Homebrew with the command:
+	xcode-select --install # Then click the "Install" button on the dialog
+
+Next install [Homebrew](https://brew.sh) with the command:
 
 	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
 
-Use Homebrew to install Python 3 and the GCC compilers (as the ones provided by Apple usually fail):
+Then use Homebrew to install Python 3 and the GCC compilers (as the ones provided by Apple usually won't work):
 
 	brew install python
 	brew install gcc
 
-Now, when installing the additional dependencies below and when running DSGRN you need to make sure that you are using the Python 3, and the corresponding pip, installed by Homebrew. They are usually called `python3` and `pip3` and are installed at `/usr/local/bin/python3` and `/usr/local/bin/pip3` (you can make sure this is the case by typing `brew info python` and checking the output). You can keep things like this and use `python3` and `pip3` from now on or you can make aliases with the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3`. To make these aliases available to all future terminal sessions, you can add them to the shell configuration file:
+Now, when installing the additional dependencies below and when running DSGRN you need to make sure that you are using the Python 3, and the corresponding pip, installed by Homebrew. They are usually called `python3` and `pip3` and are installed at `/usr/local/bin/python3` and `/usr/local/bin/pip3` (you can make sure this is the case by typing `brew info python` and checking the output). You can keep things like this and use `python3` and `pip3` from now on or you can make aliases with the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3`. To make these aliases available to future terminal sessions, you can add them to the shell configuration file (depending on your system you may need to replace `.bash_profile` by `.bashrc` or by the name of your shell configuration file):
 
 	echo "alias python=/usr/local/bin/python3" >> ~/.bash_profile
 	echo "alias pip=/usr/local/bin/pip3" >> ~/.bash_profile
 
-This is not the best way to manage multiple Python version (see <https://opensource.com/article/19/5/python-3-default-mac>), but it is good enough for our purposes.
+Note that this may not be the best way to manage multiple Python versions ([see here for other options](https://opensource.com/article/19/5/python-3-default-mac)), but it is good enough for our purposes.
 
-We also need to make sure that the GCC compilers we installed with Homebrews are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typping:
+We also need to make sure that the GCC compilers we installed with Homebrew are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typping:
 
-	echo "export CXX=g++-9"" >> ~/.bash_profile
-	echo "export CC=gcc-9"" >> ~/.bash_profile
+	echo "export CXX=g++-9" >> ~/.bash_profile
+	echo "export CC=gcc-9" >> ~/.bash_profile
 
-We also need to install a few more dependencies with Homebrew
+Before proceeding we need to make sure that these definitions take effect. You can do that with the command `source ~/.bash_profile` or by closing your terminal window and oppening a new one.
+
+Now we can use Homebrew to install the dependencies
 
 	brew install cmake
 	brew install graphviz
 	brew install openmpi
 
-and the Python depencies
+and use pip to install the Python depencies
 
 	pip install progressbar2 mpi4py jupyter ipython
 
-and pyCHomP
+Finally we can install pyCHomP
 
-	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/shaunharker/pyCHomP.git
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/shaunharker/pyCHomP.git
 
-We can finally install DSGRN with (or by clonning the repo as described above):
+and install DSGRN with the command (or by clonning the repo as described above):
 
-	pip install --upgrade --force-reinstall --no-deps --no-cache-dir --user git+https://github.com/marciogameiro/DSGRN.git
+	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/marciogameiro/DSGRN.git
 
-### Installation with Anaconda
+## Installation with Anaconda (on macOS or Linux)
 
-You will also want `python3`; both homebrew's python and Anaconda3 have been tested.
+Another option is to use [Anaconda](https://www.anaconda.com/distribution/) to install Python and the other dependencies. You can install Anaconda through the website (use the Python 3.7 version) or with the commands:
 
-For Anaconda3: See <https://www.anaconda.com> for instructions. This seems to be the most fool-proof setup for most people.
+	curl -O https://repo.anaconda.com/archive/Anaconda3-2020.02-MacOSX-x86_64.sh
+	bash Anaconda3-2020.02-MacOSX-x86_64.sh
 
-Another option is to use homebrew python:
+Note that the above commands are downloading and running the latest (at the time of this writting) install script for macOS. For other systems and for the most up to date version, please check the [Anaconda](https://www.anaconda.com/distribution/) website.
 
-    brew install python
+Now we update Anaconda and Python (which is automatically installed with Anaconda)
 
-To use the `Signatures` tool, which uses MPI <https://en.wikipedia.org/wiki/Message_Passing_Interface> you also need:
+	conda update conda
+	conda update anaconda
+	conda update python
 
-    brew install openmpi
-    pip install mpi4py
+Install GCC and other dependencies:
 
-Finally,
+	conda install -c anaconda gcc
+	conda install -c anaconda cmake
+	conda install -c anaconda graphviz
+	conda install -c anaconda mpi4py
 
-    # Install DSGRN
-    git clone https://github.com/marciogameiro/DSGRN.git
-    cd DSGRN
-    ./install.sh
+Make GCC the default C++ compiler:
 
-### Installation on Linux
+	echo "export CXX=~/anaconda3/bin/g++" >> ~/.bash_profile
+	echo "export CC=~/anaconda3/bin/gcc" >> ~/.bash_profile
 
-On an HPC cluster it is likely modern compilers, python, and a suitable version of MPI are already installed.
+The rest of the installation process (the steps using pip) should be the same as before.
+
+## Installation on Linux
+
+On a local Linux machine you can install C++ and Python, if needed, using you prefered method (`sudo apt-get install` in Ubuntu, for example) or use Anaconda as above. Just make sure you donwload the install script for Linux from the Anaconda site. The rest of the installation procedure should be the same as above.
+
+On an HPC cluster it is likely that modern compilers, python, and a suitable version of MPI are already installed.
 However, you cannot `pip install` due to permissions issues. In this case one solution is to pass the `--user` flag:
 
     pip install mpi4py --user
-    # Install DSGRN
+    
     git clone https://github.com/marciogameiro/DSGRN.git
     cd DSGRN
     ./install.sh --user
 
 This would put the `Signatures` script in `~/.local/bin`, so you may consider putting that on your `PATH`.
 
-On your own system you may use the package manager to install dependencies, e.g.
+On an HPC clusster you could also install Anaconda locally on your account and use it to install DSGRN and its dependencies. However this is not recommended.
 
-    sudo apt install libopenmpi-dev
-
-on Ubuntu. 
-
-### Uninstalling
+## Uninstalling
 
     pip uninstall DSGRN
 
