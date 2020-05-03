@@ -47,11 +47,9 @@ Then use Homebrew to install Python 3 and the GCC compilers (the ones provided b
 
 Now, when installing the additional dependencies and when running DSGRN you need to make sure that you are using the Python 3 and the corresponding pip installed by Homebrew. They are usually called `python3` and `pip3` and are installed at `/usr/local/bin/python3` and `/usr/local/bin/pip3` (you can make sure this is the case by typing `brew info python` and checking the output).
 
-You could make aliases by adding the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3` to your `.zshrc` or `.bash_profile`, but this is not recommended. See [here](https://opensource.com/article/19/5/python-3-default-mac)) for options on how to manage multiple Python versions.
+You could try to make aliases by adding the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3` to your `.zshrc` or `.bash_profile`, but this is not recommended (see [here](https://opensource.com/article/19/5/python-3-default-mac) for options on how to manage multiple Python versions). So let's just keep things the way they are and use `python3` and `pip3` from now on if needed, that is, when installing and running DSGRN you should replace `pip` and `python` by `pip3` and `python3` if this is how they are called.
 
-Let's just keep things like this and use `python3` and `pip3` from now on, that is, you should replace `pip` and `python` by `pip3` and `python3` when installing and running DSGRN.
-
-We also need to make sure that the GCC compilers we installed with Homebrew are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typping (depending on your system you may need to replace `.zshrc` by `.bash_profile` or by the name of your shell configuration file):
+We also need to make sure that the GCC compilers we installed with Homebrew are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typing (depending on your system you may need to replace `.zshrc` by `.bash_profile` or `.bashrc` or by the name of your shell configuration file):
 
 	echo "export CXX=g++-9" >> ~/.zshrc
 	echo "export CC=gcc-9" >> ~/.zshrc
@@ -174,7 +172,7 @@ This will install into a folder named `anaconda3` and add a line in `~/.bash_pro
 #export PATH="/PATH/TO/anaconda3/bin:$PATH"
 ```
 
-This will redirect command line python and pip. Note you may have to start a new `bash` session for the path changes to take effect (i.e. close and reopen the terminal program). This has the effect of plastering over any problems you might be having with multiple installations/permissions problems/jupyter not seeing the package/etc.
+This will redirect the command line python and pip. Note that you may have to start a new `bash` session for the path changes to take effect (i.e. close and reopen the terminal program). This has the effect of plastering over any problems you might be having with multiple installations/permissions problems/jupyter not seeing the package/etc.
 
 ### For macOS users with permissions issues:
 
@@ -252,5 +250,5 @@ import DSGRN
 print(DSGRN.__name__)
 ```
 
-This will tell you the path to the DSGRN the python module loader used, and you can check if it correct.
+This will tell you the path to the DSGRN the python module loader used, and you can check if it is correct.
 

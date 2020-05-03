@@ -28,7 +28,7 @@ Alternatively, you can clone the GitHub repository and install with:
 	cd DSGRN
 	./install.sh
 
-If you don't have all the dependencies installed or if the above fails, see [Installation](Install.md) for some options on how to proceed. Installing DSGRN as above on a Mac usually fails with the C++ compiler and the Python provided by Apple. In that case you need to install new versions as described in the link above.
+If you don't have all the dependencies installed or if the above fails, see [Install.md](Install.md) for some options on how to proceed. Installing DSGRN as above on a Mac usually fails with the C++ compiler and the Python provided by Apple. In that case you need to install new versions as described in the link above.
 
 ## Usage
 
@@ -45,10 +45,10 @@ This should plot the network
 
 <img src="network.png" width="120">
 
-See the [GettingStarted](https://github.com/marciogameiro/DSGRN/blob/master/Tutorials/GettingStarted.ipynb) jupyter notebook in the `Tutorials` folder for the basic usage of DSGRN.
+See the [GettingStarted.ipynb](https://github.com/marciogameiro/DSGRN/blob/master/Tutorials/GettingStarted.ipynb) jupyter notebook in the [Tutorials](https://github.com/marciogameiro/DSGRN/blob/master/Tutorials/) folder for the basic usage of DSGRN.
 
 ## Examples and Documentation
 
-See `Tutorials` folder for examples.
+See [Tutorials](https://github.com/marciogameiro/DSGRN/blob/master/Tutorials/) folder for examples.
 
 Also see the [documentation](https://shaunharker.github.io/DSGRN/).
