@@ -18,7 +18,7 @@ which can then be queried for further research.
 
 ## Installation
 
-To install DSGRN you will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see [installation](Install.md)) installed on your system, all you need to do to install DSGRN is to run the following command on the terminal:
+To install DSGRN you will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see [Install.md](Install.md)) installed on your system, all you need to do to install DSGRN is to run the following command on the terminal:
 
 	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/marciogameiro/DSGRN.git
 
@@ -28,7 +28,7 @@ Alternatively, you can clone the GitHub repository and install with:
 	cd DSGRN
 	./install.sh
 
-If you don't have all the dependencies installed or if the above fails, see [installation](Install.md) for some options on how to proceed. Installing DSGRN as above on a Mac usually fails with the C++ compiler and the Python provided by Apple. In that case you need to install new versions as described in the link above.
+If you don't have all the dependencies installed or if the above fails, see [Installation](Install.md) for some options on how to proceed. Installing DSGRN as above on a Mac usually fails with the C++ compiler and the Python provided by Apple. In that case you need to install new versions as described in the link above.
 
 ## Usage
 
