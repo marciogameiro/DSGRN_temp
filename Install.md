@@ -17,7 +17,7 @@ If you don't have all the dependencies installed or if the above fails, continue
 
 ## Dependencies
 
-DSGRN needs the follwoing dependencies installed on your system:
+DSGRN needs the following dependencies installed on your system:
 
 * Modern C++ compiler
 * Python3
