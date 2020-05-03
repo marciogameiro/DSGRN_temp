@@ -18,7 +18,7 @@ which can then be queried for further research.
 
 ## Installation
 
-To install DSGRN you will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see below) installed on your system, all you need to do to install DSGRN on your system is to run the following command on the terminal:
+To install DSGRN you will need a modern C++ compiler (supporting C++11) and Python 3. If you have these and the dependencies needed by DSGRN (see below) installed on your system, all you need to do to install DSGRN is to run the following command on the terminal:
 
 	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/marciogameiro/DSGRN.git
 
@@ -28,7 +28,24 @@ Alternatively, you can clone the GitHub repository and install with:
 	cd DSGRN
 	./install.sh
 
-If you don't have all the dependencies installed or if the above fails continue reading for options on how to proceed. On a Mac installing DSGRN as above usually fails with the C++ compiler and the Python provided by Apple. In that case you may need to install new versions as described below.
+If you don't have all the dependencies installed or if the above fails, see [installation](Install) for some options on how to proceed. Installing DSGRN as above on a Mac usually fails with the C++ compiler and the Python provided by Apple. In that case you need to install new versions as described in the link above.
+
+## Usage
+
+To check if DSGRN is installed do
+
+```python,test
+import DSGRN
+
+network = DSGRN.Network("X1 : (~X1)(X2)\n X2 : (X1)(~X2)")
+DSGRN.DrawGraph(network)
+```
+
+This should plot the network
+
+<img src="network.png" width="120">
+
+See the [GettingStarted](https://github.com/marciogameiro/DSGRN/blob/master/Tutorials/GettingStarted.ipynb) jupyter notebook in the `Tutorials` folder for the basic usage of DSGRN.
 
 ## Dependencies
 
@@ -43,215 +60,8 @@ DSGRN needs the follwoing dependencies installed on your system:
 * Jupyter Notebook
 * Open MPI and mpi4py (optional)
 
-## Installation on macOS with Homebrew (recommended)
-
-First install macOS Command Line Tools with the command:
-
-	xcode-select --install # Then click the "Install" button on the dialog
-
-Next install [Homebrew](https://brew.sh) with the command:
-
-	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-
-Then use Homebrew to install Python 3 and the GCC compilers (as the ones provided by Apple usually won't work):
-
-	brew install python
-	brew install gcc
-
-Now, when installing the additional dependencies below and when running DSGRN you need to make sure that you are using the Python 3, and the corresponding pip, installed by Homebrew. They are usually called `python3` and `pip3` and are installed at `/usr/local/bin/python3` and `/usr/local/bin/pip3` (you can make sure this is the case by typing `brew info python` and checking the output). You can keep things like this and use `python3` and `pip3` from now on or you can make aliases with the commands `alias python=/usr/local/bin/python3` and `alias pip=/usr/local/bin/pip3`. To make these aliases available to future terminal sessions, you can add them to the shell configuration file (depending on your system you may need to replace `.bash_profile` by `.bashrc` or by the name of your shell configuration file):
-
-	echo "alias python=/usr/local/bin/python3" >> ~/.bash_profile
-	echo "alias pip=/usr/local/bin/pip3" >> ~/.bash_profile
-
-Note that this may not be the best way to manage multiple Python versions ([see here for other options](https://opensource.com/article/19/5/python-3-default-mac)), but it is good enough for our purposes.
-
-We also need to make sure that the GCC compilers we installed with Homebrew are the ones used by CMake when we install DSGRN (use `brew info gcc` to make sure they are installed as `g++-9` and `gcc-9`, otherwise update the commands below). You can do that by typping:
-
-	echo "export CXX=g++-9" >> ~/.bash_profile
-	echo "export CC=gcc-9" >> ~/.bash_profile
-
-Before proceeding we need to make sure that these definitions take effect. You can do that with the command `source ~/.bash_profile` or by closing your terminal window and oppening a new one.
-
-Now we can use Homebrew to install the dependencies
-
-	brew install cmake
-	brew install graphviz
-	brew install openmpi
-
-and use pip to install the Python depencies
-
-	pip install progressbar2 mpi4py jupyter ipython
-
-Finally we can install pyCHomP
-
-	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/shaunharker/pyCHomP.git
-
-and install DSGRN with the command (or by clonning the repo as described above):
-
-	pip install --upgrade --force-reinstall --no-deps --no-cache-dir git+https://github.com/marciogameiro/DSGRN.git
-
-## Installation with Anaconda (on macOS or Linux)
-
-Another option is to use [Anaconda](https://www.anaconda.com/distribution/) to install Python and the other dependencies. You can install Anaconda through the website (use the Python 3.7 version) or with the commands:
-
-	curl -O https://repo.anaconda.com/archive/Anaconda3-2020.02-MacOSX-x86_64.sh
-	bash Anaconda3-2020.02-MacOSX-x86_64.sh
-
-Note that the above commands are downloading and running the latest (at the time of this writting) install script for macOS. For other systems and for the most up to date version, please check the [Anaconda](https://www.anaconda.com/distribution/) website.
-
-Now we update Anaconda and Python (which is automatically installed with Anaconda)
-
-	conda update conda
-	conda update anaconda
-	conda update python
-
-Install GCC and other dependencies:
-
-	conda install -c anaconda gcc
-	conda install -c anaconda cmake
-	conda install -c anaconda graphviz
-	conda install -c anaconda mpi4py
-
-Make GCC the default C++ compiler:
-
-	echo "export CXX=~/anaconda3/bin/g++" >> ~/.bash_profile
-	echo "export CC=~/anaconda3/bin/gcc" >> ~/.bash_profile
-
-The rest of the installation process (the steps using pip) should be the same as before.
-
-## Installation on Linux
-
-On a local Linux machine you can install C++ and Python, if needed, using you prefered method (`sudo apt-get install` in Ubuntu, for example) or use Anaconda as above. Just make sure you donwload the install script for Linux from the Anaconda site. The rest of the installation procedure should be the same as above.
-
-On an HPC cluster it is likely that modern compilers, python, and a suitable version of MPI are already installed.
-However, you cannot `pip install` due to permissions issues. In this case one solution is to pass the `--user` flag:
-
-    pip install mpi4py --user
-    
-    git clone https://github.com/marciogameiro/DSGRN.git
-    cd DSGRN
-    ./install.sh --user
-
-This would put the `Signatures` script in `~/.local/bin`, so you may consider putting that on your `PATH`.
-
-On an HPC clusster you could also install Anaconda locally on your account and use it to install DSGRN and its dependencies. However this is not recommended.
-
-## Uninstalling
-
-    pip uninstall DSGRN
-
-<!--
-### Latest Stable Version
-
-To get the latest tagged version from the PyPi repository:
-
-```bash
-pip install dsgrn
-```
-
-To uninstall:
-
-```bash
-pip uninstall dsgrn
-```
--->
-
 ## Examples and Documentation
 
 See `Tutorials` folder for examples.
 
 Also see the [documentation](https://shaunharker.github.io/DSGRN/).
-
-## Troubleshooting
-
-### Can't get it to work with your version of python
-
-Try Anaconda3 <https://www.anaconda.com>.
-
-This will install into a folder named `anaconda3` and add a line in `~/.bash_profile`:
-
-```bash
-#added by Anaconda3 5.0.1 installer
-#export PATH="/PATH/TO/anaconda3/bin:$PATH"
-```
-
-This will redirect command line python and pip. Note you may have to start a new `bash` session for the path changes to take effect (i.e. close and reopen the terminal program). This has the effect of plastering over any problems you might be having with multiple installations/permissions problems/jupyter not seeing the package/etc.
-
-### For macOS users with permissions issues:
-
-If the installation gives permissions issues, oftentimes the culprit is broken permissions on the subfolders of the homebrew folder `/usr/local`. 
-
-First, see what
-
-```
-brew doctor
-```
-
-says. A common fix is:
-
-```
-sudo chown -R $(whoami) $(brew --prefix)/*
-```
-
-If it still doesn't work after this, then you might try uninstalling and reinstalling homebrew.
-
-To uninstall homebrew:
-
-```
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall)"
-```
-
-Or `sudo` if it gives issues:
-
-```
-sudo ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall)"
-```
-
-To install homebrew (don't use `sudo` here!):
-
-```
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-```
-
-### For Linux users with permissions issues:
-
-For missing dependencies, you'll need to contact your system admin.
-
-For python modules, you can pass the `--user` flag:
-
-    # Install DSGRN
-    git clone https://github.com/marciogameiro/DSGRN.git
-    cd DSGRN
-    ./install.sh --user
-
-
-### Python/Jupyter Integration issues:
-
-If the package installs but it is not visible in jupyter, the likely problem is that the jupyter python kernel is not the same python for which pychomp was installed. That is, you may have multiple pythons on your system.
-
-You can try to confirm this by typing
-
-```
-which python
-which pip
-which jupyter
-```
-
-Possible fixes include steps such as 
-
-1. checking/changing your environmental variable `PATH` in `~/.bash_profile` or `.bashrc`
-2. uninstalling python and jupyter, then reinstalling python then jupyter
-3. plastering over with anaconda3
-4. googling for answers until 3AM
-
-### You suspect you have an old install of DSGRN conflicting
-
-In python, type
-
-```python
-import DSGRN
-print(DSGRN.__name__)
-```
-
-This will tell you the path to the DSGRN the python module loader used, and you can check if it correct.
-
