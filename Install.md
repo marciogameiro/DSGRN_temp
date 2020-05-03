@@ -194,6 +194,24 @@ sudo chown -R $(whoami) $(brew --prefix)/*
 
 If it still doesn't work after this, then you might try uninstalling and reinstalling homebrew.
 
+To uninstall homebrew:
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh)"
+```
+
+Or `sudo` if it gives issues:
+
+```
+sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/uninstall.sh)"
+```
+
+To install homebrew (don't use `sudo` here!):
+
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+```
+
 ### For Linux users with permissions issues:
 
 For missing dependencies, you'll need to contact your system admin.
