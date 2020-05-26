@@ -59,12 +59,11 @@ Before proceeding we need to make sure that these definitions take effect. You c
 Now we can use Homebrew to install the dependencies
 
 	brew install cmake
-	brew install graphviz
 	brew install openmpi
 
 and use pip to install the Python depencies
 
-	pip install progressbar2 mpi4py jupyter ipython
+	pip install graphviz progressbar2 mpi4py jupyter ipython
 
 Finally we can install pyCHomP
 
@@ -92,12 +91,11 @@ Next update Anaconda and Python (which is automatically installed with Anaconda)
 Install the dependencies:
 
 	conda install -c anaconda cmake
-	conda install -c anaconda graphviz
 	conda install -c anaconda mpi4py
 
 The rest of the installation process (the steps using pip) should be the same as before
 
-	pip install progressbar2 mpi4py jupyter ipython
+	pip install graphviz progressbar2 mpi4py jupyter ipython
 
 Then install pyCHomP:
 
