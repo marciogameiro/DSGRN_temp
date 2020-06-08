@@ -1,6 +1,9 @@
 /// ParameterGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2020-05-25
 
 #pragma once 
 
@@ -35,12 +38,27 @@ assign ( Network const& network ) {
     data_ -> order_place_bases_ . push_back ( _factorial ( m ) );
     data_ -> reorderings_ *= data_ -> order_place_bases_ . back ();
     std::vector<std::vector<uint64_t>> const& logic_struct = data_ -> network_ . logic ( d );
+    std::vector<bool> const& terms_sign = data_ -> network_ . logic_term_sign ( d );
     std::stringstream ss;
     ss << path << "/" << n <<  "_" << m;
-    for ( auto const& p : logic_struct ) ss <<  "_" << p.size();
+    // Set logic file name depending on model
+    std::string model = data_ -> network_ . model ();
+    uint64_t loop_index = 0;
+    for ( auto const& p : logic_struct ) {
+      if ( model == "original" ) {
+        ss <<  "_" << p . size();
+      } else { // model == "ecology"
+        ss <<  "_" << p . size() << (terms_sign [loop_index] ? "p" : "n");
+      }
+      ++ loop_index;
+    }
+    // Add Ecology to the file name for ecology model
+    if ( model == "ecology" ) {
+      ss << "_Ecology";
+    }
     if ( data_ -> network_ . essential ( d ) ) ss << "_E";
     ss << ".dat";
-    //std::cout << "Acquiring logic data in " << ss.str() << "\n";
+    // std::cout << "Acquiring logic data in " << ss.str() << "\n";
     std::vector<std::string> hex_codes;
     std::ifstream infile ( ss.str() );
     if ( not infile . good () ) {

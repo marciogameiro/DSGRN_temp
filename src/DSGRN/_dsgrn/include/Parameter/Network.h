@@ -1,6 +1,9 @@
 /// Network.h
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2020-05-25
 
 #pragma once
 
@@ -24,11 +27,16 @@ public:
   ///   Otherwise, it assumes s is a filename and attempts to load a network specification.
   Network ( std::string const& s );
 
+  /// Network
+  ///   Construct network
+  ///   If model == 'ecology' uses the ecology model of DSGRN
+  Network ( std::string const& s, std::string const& model );
+
   /// assign
   ///   Delayed construction of default constructed object
   void
   assign ( std::string const& s );
-  
+
   /// load
   ///   load from network specification file
   void 
@@ -75,6 +83,16 @@ public:
   bool
   interaction ( uint64_t source, uint64_t target ) const;
 
+  /// edge_sign
+  ///   Return true for a positive edge and false otherwise
+  bool
+  edge_sign ( uint64_t source, uint64_t target ) const;
+
+  /// logic_term_sign
+  ///   Return vector of term signs (true for positive and false for negative)
+  std::vector<bool> const&
+  logic_term_sign ( uint64_t index ) const;
+
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
   ///   outputs(source)[order(source,target)] == target
@@ -93,6 +111,11 @@ public:
   std::string
   specification ( void ) const;
 
+  /// model
+  ///    Return the model being used (i.e. original or ecology)
+  std::string
+  model ( void ) const;
+
   /// graphviz
   ///   Return a graphviz string (dot language)
   std::string
@@ -110,6 +133,8 @@ private:
 
   std::vector<std::string> _lines ( void );
   void _parse ( std::vector<std::string> const& lines );
+  void _parse_logic ( std::vector<std::string> const& logic_strings );
+  void _parse_logic_ecology ( std::vector<std::string> const& logic_strings );
 };
 
 struct Network_ {
@@ -118,10 +143,13 @@ struct Network_ {
   std::unordered_map<std::string, uint64_t> index_by_name_;
   std::vector<std::string> name_by_index_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
+  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_sign_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
   std::vector<std::vector<std::vector<uint64_t>>> logic_by_index_;
+  std::vector<std::vector<bool>> logic_term_sign_;
   std::vector<bool> essential_;
   std::string specification_;
+  std::string model_;
 };
 
 /// Python Bindings
@@ -135,6 +163,7 @@ NetworkBinding (py::module &m) {
   py::class_<Network, std::shared_ptr<Network>>(m, "Network")
     .def(py::init<>())
     .def(py::init<std::string const&>())
+    .def(py::init<std::string const&, std::string const&>())
     .def("load", &Network::load)
     .def("assign", &Network::assign)
     .def("size", &Network::size)
@@ -145,9 +174,12 @@ NetworkBinding (py::module &m) {
     .def("logic", &Network::logic)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
+    .def("edge_sign", &Network::edge_sign)
+    .def("logic_term_sign", &Network::logic_term_sign)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
     .def("specification", &Network::specification)
+    .def("model", &Network::model)
     .def("graphviz", [](Network const& network){ return network.graphviz();})
     .def(py::pickle(
     [](Network const& p) { // __getstate__
