@@ -58,7 +58,6 @@ assign ( Network const& network ) {
     }
     if ( data_ -> network_ . essential ( d ) ) ss << "_E";
     ss << ".dat";
-std::cout << "Acquiring logic data in " << ss.str() << "\n";
     // std::cout << "Acquiring logic data in " << ss.str() << "\n";
     std::vector<std::string> hex_codes;
     std::ifstream infile ( ss.str() );
