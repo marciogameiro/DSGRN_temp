@@ -1,6 +1,9 @@
 /// ParameterGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2020-05-31
 
 #pragma once 
 
@@ -37,10 +40,26 @@ assign ( Network const& network ) {
     std::vector<std::vector<uint64_t>> const& logic_struct = data_ -> network_ . logic ( d );
     std::stringstream ss;
     ss << path << "/" << n <<  "_" << m;
-    for ( auto const& p : logic_struct ) ss <<  "_" << p.size();
+    bool ptm_logic = false;
+    for ( auto const& p : logic_struct ) {
+      auto source = p . front();
+      if ( data_ -> network_ . decay_edge ( source, d ) ) { // Decay edge
+      	bool e_sign = data_ -> network_ . edge_sign ( source, d );
+      	ss <<  "_" << p . size() << (e_sign ? "p" : "n");
+      	ptm_logic = true; // Use PTM logic only for decay edges
+      } else { // Regular edge
+        ss <<  "_" << p.size();
+      }
+    }
+    // for ( auto const& p : logic_struct ) ss <<  "_" << p.size();
+    // Add PTM if PTM logic is needed
+    if ( ptm_logic ) {
+      ss << "_PTM";
+    }
     if ( data_ -> network_ . essential ( d ) ) ss << "_E";
     ss << ".dat";
-    //std::cout << "Acquiring logic data in " << ss.str() << "\n";
+std::cout << "Acquiring logic data in " << ss.str() << "\n";
+    // std::cout << "Acquiring logic data in " << ss.str() << "\n";
     std::vector<std::string> hex_codes;
     std::ifstream infile ( ss.str() );
     if ( not infile . good () ) {
