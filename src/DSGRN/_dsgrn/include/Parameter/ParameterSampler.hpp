@@ -362,15 +362,20 @@ ParameterSampler::Name_Parameters
     for ( uint64_t i = 0; i < n; ++ i ) {
       uint64_t input = network . inputs(d) [ i ];
       std::string const& input_name = network . name ( input );
-      result[ "L[" + input_name + ", " + name + "]" ] = instance . at ("L[" + std::to_string(i+1) + "]");
-      result[ "U[" + input_name + ", " + name + "]" ] = instance . at ("U[" + std::to_string(i+1) + "]");
+      // Modify indexing output format
+      result[ "L[" + input_name + "->" + name + "]" ] = instance . at ("L[" + std::to_string(i+1) + "]");
+      result[ "U[" + input_name + "->" + name + "]" ] = instance . at ("U[" + std::to_string(i+1) + "]");
+      // result[ "L[" + input_name + ", " + name + "]" ] = instance . at ("L[" + std::to_string(i+1) + "]");
+      // result[ "U[" + input_name + ", " + name + "]" ] = instance . at ("U[" + std::to_string(i+1) + "]");
     }
     // Handle output parameter (i.e. T)
     uint64_t m = network . outputs ( d ) . size ();
     for ( uint64_t i = 0; i < m; ++ i ) {
       uint64_t output = network . outputs(d) [ order[d](i) ];
       std::string const& output_name = network . name ( output );
-      result[ "T[" + name + ", " + output_name + "]" ] = instance . at ("T[" + std::to_string(i+1) + "]");
+      // Modify indexing output format
+      result[ "T[" + name + "->" + output_name + "]" ] = instance . at ("T[" + std::to_string(i+1) + "]");
+      // result[ "T[" + name + ", " + output_name + "]" ] = instance . at ("T[" + std::to_string(i+1) + "]");
     }
   }
   return result;

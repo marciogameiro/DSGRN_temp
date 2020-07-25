@@ -256,28 +256,32 @@ INLINE_IF_HEADER_ONLY std::string Parameter::
 inequalities ( void ) const {
   // input_string
   //   Given an input edge i of a node d output the L/U indexing associated
-  auto input_string = [&](uint64_t i, uint64_t d ) {
+  auto input_string = [&]( uint64_t i, uint64_t d ) {
     uint64_t source = network() . inputs ( d ) [ i ];
     std::string const& node_name = network() . name ( d );
     std::string source_name = network() . name(source);
     std::stringstream input_ss;
-    input_ss << "[" << source_name << "," << node_name << "]";
+    // Modify indexing output format
+    input_ss << "[" << source_name << "->" << node_name << "]";
+    // input_ss << "[" << source_name << "," << node_name << "]";
     return input_ss . str ();
   };
   // output_string
   //   Given an output edge j, output the THETA variable associated with it
-  auto output_string = [&](uint64_t j, uint64_t d ) {
+  auto output_string = [&]( uint64_t j, uint64_t d ) {
     uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
     std::string const& node_name = network() . name ( d );
     std::string target_name = network() . name(target);
     std::stringstream output_ss;
-    output_ss << "T[" << node_name << "," << target_name << "]";
+    // Modify indexing output format
+    output_ss << "T[" << node_name << "->" << target_name << "]";
+    // output_ss << "T[" << node_name << "," << target_name << "]";
     return output_ss . str ();
   };
   // input_combo_string
   //   Given an input combination i, return the algebraic formula
   //   of U's and L's associated with that input combination.
-  auto input_combo_string = [&](uint64_t i, uint64_t d) {
+  auto input_combo_string = [&]( uint64_t i, uint64_t d ) {
     std::stringstream input_ss;
     std::vector<std::vector<uint64_t>> logic = 
       network () . logic ( d );
@@ -297,9 +301,13 @@ inequalities ( void ) const {
         if ( inner_first ) inner_first = false; else input_ss << " + ";
         std::string source_name = network() . name(source);
         if ( i & bit ) {
-          input_ss << "U[" << source_name <<"," << node_name << "]";
+          // Modify indexing output format
+          input_ss << "U[" << source_name << "->" << node_name << "]";
+          // input_ss << "U[" << source_name << "," << node_name << "]";
         } else {
-          input_ss << "L[" << source_name <<"," << node_name << "]";
+          // Modify indexing output format
+          input_ss << "L[" << source_name << "->" << node_name << "]";
+          // input_ss << "L[" << source_name << "," << node_name << "]";
         }
         bit <<= 1;
         ++ k;
