@@ -1,6 +1,9 @@
 /// Parameter.h
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2020-08-03
 
 #pragma once
 

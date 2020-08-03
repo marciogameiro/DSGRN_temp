@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2020-05-25
+/// 2020-08-03
 
 #pragma once
 
@@ -92,6 +92,11 @@ outputs ( uint64_t index ) const {
   return data_ -> outputs_[index];
 }
 
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& Network:: 
+input_instances ( uint64_t index ) const {
+  return data_ -> input_instances_[index];
+}
+
 INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> const& Network::
 logic ( uint64_t index ) const {
   return data_ -> logic_by_index_ [ index ];
@@ -118,8 +123,8 @@ logic_term_sign ( uint64_t index ) const {
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
-order ( uint64_t source, uint64_t target ) const {
-  return data_ -> order_ . find ( std::make_pair ( source, target ) ) -> second;
+order ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> order_ . find ( std::make_tuple (source, target, instance) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
@@ -272,12 +277,22 @@ _parse ( std::vector<std::string> const& lines ) {
   // Compute inputs and outputs
   data_ -> inputs_ . resize ( size () );
   data_ -> outputs_ . resize ( size () );
+  data_ -> input_instances_ . resize ( size () );
   for ( uint64_t target = 0; target < size (); ++ target ) {
+    // Keep track of repeated inputs to target
+    std::unordered_map<uint64_t, uint64_t> input_counts;
     for ( auto const& factor : logic ( target ) ) {
       for ( uint64_t source : factor ) {
+        uint64_t instance = 0; // Keep track of input instances
+        if ( input_counts . find (source) != input_counts . end() ) {
+          instance = input_counts . find (source) -> second;
+        }
+        input_counts [source] = instance + 1;
         data_ -> inputs_[target] . push_back ( source );
         data_ -> outputs_[source] . push_back ( target );
-        data_ -> order_[std::make_pair(source,target)] = data_ -> outputs_[source].size()-1;
+        data_ -> input_instances_[target] . push_back ( instance );
+        // Output order of this instance of edge (source, target)
+        data_ -> order_[std::make_tuple(source, target, instance)] = data_ -> outputs_[source].size() - 1;
       }
     }
   }

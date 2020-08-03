@@ -11,6 +11,9 @@ dsgrn.session
 # Mac OS X files
 .DS_Store
 
+# Jupyter notebook files
+.ipynb_checkpoints
+
 # Compiled Object files
 *.slo
 *.lo
@@ -48,4 +51,3 @@ dsgrn.session
 # IntelliJ Idea
 *.iml
 *.idea
-

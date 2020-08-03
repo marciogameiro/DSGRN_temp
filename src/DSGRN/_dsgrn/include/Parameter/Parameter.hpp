@@ -1,6 +1,9 @@
 /// Parameter.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2020-08-03
 
 #pragma once
 
@@ -43,7 +46,6 @@ assign ( Network const& network ) {
   data_ -> network_ = network;
 }
 
-
 INLINE_IF_HEADER_ONLY bool Parameter::
 attracting ( Domain const& dom ) const {
   int D = data_ -> network_ . size ();
@@ -57,25 +59,28 @@ attracting ( Domain const& dom ) const {
 INLINE_IF_HEADER_ONLY std::vector<bool> Parameter::
 combination ( Domain const& dom, int variable ) const {
   std::vector<bool> input_combination;
-  //std::cout << "  Forming input combination by analyzing inputs of node " << variable << ".\n";
-  for ( int source : data_ -> network_ . inputs ( variable ) ) {
-    //std::cout << "    Analyze source edge " << source << "\n";
+  // std::cout << "  Forming input combination by analyzing inputs of node " << variable << ".\n";
+  uint64_t inputs_size = data_ -> network_ . inputs ( variable ) . size ();
+  for ( uint64_t index = 0; index < inputs_size; ++index ) {
+    uint64_t source = data_ -> network_ . inputs ( variable ) [ index ];
+    uint64_t instance = data_ -> network_ . input_instances ( variable ) [ index ];
+    // std::cout << "    Analyze instance " << instance << " of source edge " << source << "\n";
     bool activating = data_ -> network_ . interaction ( source, variable );
-    //std::cout << "      This edge is " << (activating ? "activating" : "repressing" ) << ".\n";
-    int inedge = data_ -> network_ . order ( source, variable );
-    //std::cout << "      This edge is the " << inedge << "th ordered outedge of " << source << ".\n";
+    // std::cout << "      This edge is " << (activating ? "activating" : "repressing" ) << ".\n";
+    int inedge = data_ -> network_ . order ( source, variable , instance );
+    // std::cout << "      This edge is the " << inedge << "th ordered outedge of " << source << ".\n";
     int thres = data_ -> order_ [ source ] . inverse ( inedge );
-    //std::cout << "      The input combination digit depends on which side of threshold " << thres << " on dimension " << source << " we are at.\n";
+    // std::cout << "      The input combination digit depends on which side of threshold " << thres << " on dimension " << source << " we are at.\n";
     bool result = not ( dom [ source ] > thres ) ^ activating;
-    //std::cout << "      The domain is on the " << ( ( dom [ source ] > thres ) ? "right" : "left" ) << " side of this threshold.\n";
+    // std::cout << "      The domain is on the " << ( ( dom [ source ] > thres ) ? "right" : "left" ) << " side of this threshold.\n";
     input_combination . push_back ( result );
-    //std::cout << "      Hence, the input combination digit is " << (result ? "1" : "0") << "\n";
+    // std::cout << "      Hence, the input combination digit is " << (result ? "1" : "0") << "\n";
   } 
-  //std::cout << "  Input combination formed. Big-endian representation = ";
-  //for ( int i = input_combination . size () - 1; i >= 0; -- i ){
-  // std::cout << (input_combination[i] ? "1" : "0");
-  //}
-  //std::cout << "\n";
+  // std::cout << "  Input combination formed. Big-endian representation = ";
+  // for ( int i = input_combination . size () - 1; i >= 0; -- i ){
+  //   std::cout << (input_combination[i] ? "1" : "0");
+  // }
+  // std::cout << "\n";
   return input_combination;
 }
 
@@ -132,7 +137,7 @@ labelling ( void ) const {
   for ( int d = 0; d < D; ++ d ) {
     uint64_t n = network() . inputs ( d ) . size ();
     uint64_t numInComb = ( 1LL << n );
-    //uint64_t num_debug_domains = 0;
+    // uint64_t num_debug_domains = 0;
     for ( uint64_t in = 0; in < numInComb; ++ in ) {
       /// What bin does the target point land in for dimension d?
       uint64_t bin = data_ -> logic_ [ d ] . bin ( in );
@@ -141,12 +146,13 @@ labelling ( void ) const {
       upper_limits = limits;
       uint64_t sources = network () . inputs ( d ) . size ();
       for ( uint64_t inorder = 0; inorder < sources; ++ inorder ) {
-        //std::cout << "Dim " << d << ", in = " << in << " inorder = " << inorder << "\n";
+        // std::cout << "Dim " << d << ", in = " << in << " inorder = " << inorder << "\n";
         uint64_t source = network () . inputs ( d ) [ inorder ];
-        //std::cout << "source = " << source << "\n";
+        uint64_t instance = network () . input_instances ( d ) [ inorder ];
+        // std::cout << "instance = " << instance << ", source = " << source << "\n";
         bool activating = network () . interaction ( source, d );
-        //std::cout << "high is activating? " << ( activating ? "yes" : "no" ) << "\n";
-        int outorder = network () . order ( source, d );
+        // std::cout << "high is activating? " << ( activating ? "yes" : "no" ) << "\n";
+        int outorder = network () . order ( source, d, instance );
         //std::cout << "outorder = " << outorder << "\n";
         bool side = in & ( 1LL << inorder );
         //std::cout << "on activating side? " << ( side ? "yes" : "no" ) << "\n";
