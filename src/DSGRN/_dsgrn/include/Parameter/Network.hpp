@@ -54,7 +54,6 @@ assign ( std::string const& s ) {
 
 INLINE_IF_HEADER_ONLY void Network::
 load ( std::string const& filename ) {
-data_ . reset ( new Network_ );
   std::ifstream infile ( filename );
   if ( not infile . good () ) { 
     throw std::runtime_error ( "Problem loading network specification file " + filename );
