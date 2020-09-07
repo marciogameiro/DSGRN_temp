@@ -205,15 +205,19 @@ labelling ( void ) const {
       uint64_t left = lower_limits [ d ];
       uint64_t right = upper_limits [ d ];
 
-      // Zone 1. (Flows to right.)
+      // Zone 1 (Flows to right)
       if ( bin > left ) {
         lower_limits [ d ] = left;
-        upper_limits [ d ] = bin;
+        // Bug fix for self repressor case
+        upper_limits [ d ] = std::min ( right, bin );
+        // upper_limits [ d ] = bin;
         apply_mask (1LL << (D+d));
       }
-      // Zone 2. (Flows to left.)
-      if ( bin+1 < right ) {
-        lower_limits [ d ] = bin + 1;
+      // Zone 2 (Flows to left)
+      if ( bin + 1 < right ) {
+        // Bug fix for self repressor case
+        lower_limits [ d ] = std::max ( left, bin + 1 );
+        // lower_limits [ d ] = bin + 1;
         upper_limits [ d ] = right;
         apply_mask (1LL << d);
       }
