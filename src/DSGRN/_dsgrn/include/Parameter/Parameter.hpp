@@ -139,6 +139,8 @@ labelling ( void ) const {
     uint64_t numInComb = ( 1LL << n );
     // uint64_t num_debug_domains = 0;
     for ( uint64_t in = 0; in < numInComb; ++ in ) {
+      // To check if input combination is valid
+      bool valid_incomb = true;
       /// What bin does the target point land in for dimension d?
       uint64_t bin = data_ -> logic_ [ d ] . bin ( in );
       /// Which domains have this input combination for dimension d?
@@ -153,20 +155,43 @@ labelling ( void ) const {
         bool activating = network () . interaction ( source, d );
         // std::cout << "high is activating? " << ( activating ? "yes" : "no" ) << "\n";
         int outorder = network () . order ( source, d, instance );
-        //std::cout << "outorder = " << outorder << "\n";
+        // std::cout << "outorder = " << outorder << "\n";
         bool side = in & ( 1LL << inorder );
-        //std::cout << "on activating side? " << ( side ? "yes" : "no" ) << "\n";
+        // std::cout << "on activating side? " << ( side ? "yes" : "no" ) << "\n";
         uint64_t thres = data_ -> order_ [ source ] . inverse ( outorder ) + 1;
-        //std::cout << "critical bin = " << thres << "\n";
+        // std::cout << "critical bin = " << thres << "\n";
+        uint64_t l_limit;
+        uint64_t u_limit;
         if ( activating ^ side ) {
-          //std::cout << "Case A.\n";
-          lower_limits[source] = 0;
-          upper_limits[source] = thres;
+          // std::cout << "Case A.\n";
+          l_limit = 0;
+          u_limit = thres;
+          // lower_limits[source] = 0;
+          // upper_limits[source] = thres;
         } else {
-          //std::cout << "Case B.\n";
-          lower_limits[source] = thres;
-          upper_limits[source] = limits [ source ];
+          // std::cout << "Case B.\n";
+          l_limit = thres;
+          u_limit = limits [ source ];
+          // lower_limits[source] = thres;
+          // upper_limits[source] = limits [ source ];
         }
+        // Check if there is a non-empty intersection with previous bounds and
+        // set the bounds to the intersection (relevant to case of multiple edges).
+        // In the case of a single edge, the previous bounds are 0 and limits[source]
+        // and the intersection is always l_limit and u_limit as originally.
+        if ( (u_limit > lower_limits[source]) and (l_limit < upper_limits[source]) ) {
+          lower_limits[source] = std::max(l_limit, lower_limits[source]);
+          upper_limits[source] = std::min(u_limit, upper_limits[source]);
+        } else {
+          // Empty intersection. Input combination not valid.
+          lower_limits[source] = 0;
+          upper_limits[source] = 0;
+          valid_incomb = false;
+        }
+      }
+      // Skip input combination if not valid
+      if ( not valid_incomb ) {
+        continue;
       }
       /// Iterate through two zones:
       ///   Zone 1. domain left of bin
@@ -205,7 +230,7 @@ labelling ( void ) const {
       uint64_t left = lower_limits [ d ];
       uint64_t right = upper_limits [ d ];
 
-      // Zone 1 (Flows to right)
+      // Zone 1 (flows to right)
       if ( bin > left ) {
         lower_limits [ d ] = left;
         // Bug fix for self repressor case
@@ -213,13 +238,33 @@ labelling ( void ) const {
         // upper_limits [ d ] = bin;
         apply_mask (1LL << (D+d));
       }
-      // Zone 2 (Flows to left)
+      // Zone 2 (flows to left)
       if ( bin + 1 < right ) {
         // Bug fix for self repressor case
         lower_limits [ d ] = std::max ( left, bin + 1 );
         // lower_limits [ d ] = bin + 1;
         upper_limits [ d ] = right;
         apply_mask (1LL << d);
+      }
+    }
+  }
+
+  // Reverse the flow for ecology model
+  if ( network() . model () == "ecology" ) {
+    for ( uint64_t dom_index = 0; dom_index < N; ++ dom_index ) {
+      uint64_t domain = dom_index;
+      for ( uint64_t d = 0; d < D; ++ d ) {
+        // Get coordinate in dimension d
+        uint64_t coord = domain % limits [d];
+        domain /= limits [d];
+        uint64_t mask_left = ( 1LL << d );
+        uint64_t mask_right = ( 1LL << (D+d) );
+        if ( coord > 0 ) { // Reverse flow on left wall
+          result [ dom_index ] ^= mask_left; // Toggle bit
+        }
+        if ( coord < limits [d] - 1 ) { // Reverse flow on right wall
+          result [ dom_index ] ^= mask_right; // Toggle bit
+        }
       }
     }
   }
