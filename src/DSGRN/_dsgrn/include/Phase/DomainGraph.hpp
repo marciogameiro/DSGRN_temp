@@ -48,15 +48,15 @@ assign ( Parameter const& parameter ) {
     for ( int d = 0; d < D; ++ d, leftbit <<= 1, rightbit <<= 1 ) {
       if ( labelling [ i ] & rightbit ) {
         uint64_t j = i + jump[d];
-        if ( not (labelling [ j ] & leftbit) ) {
+//        if ( not (labelling [ j ] & leftbit) ) {
           digraph . add_edge ( i, j );
-        }
+//        }
       }
       if ( labelling [ i ] & leftbit ) {
         uint64_t j = i - jump[d];
-        if ( not (labelling [ j ] & rightbit) ) {
+//        if ( not (labelling [ j ] & rightbit) ) {
           digraph . add_edge ( i, j );
-        }
+//        }
       }
     }
   }

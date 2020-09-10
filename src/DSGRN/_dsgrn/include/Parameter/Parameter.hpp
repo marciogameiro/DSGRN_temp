@@ -148,7 +148,7 @@ labelling ( void ) const {
       upper_limits = limits;
       uint64_t sources = network () . inputs ( d ) . size ();
       for ( uint64_t inorder = 0; inorder < sources; ++ inorder ) {
-        // std::cout << "Dim " << d << ", in = " << in << " inorder = " << inorder << "\n";
+        // std::cout << "Dim " << d << ", in = " << in << ", inorder = " << inorder << "\n";
         uint64_t source = network () . inputs ( d ) [ inorder ];
         uint64_t instance = network () . input_instances ( d ) [ inorder ];
         // std::cout << "instance = " << instance << ", source = " << source << "\n";
