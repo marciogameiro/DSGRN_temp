@@ -23,6 +23,7 @@ from DSGRN.Query.PosetOfExtrema import *
 from DSGRN.Query.Logging import *
 from DSGRN.Query.StableFCQuery import *
 from DSGRN.Query.ComputeSingleGeneQuery import *
+from DSGRN.ParameterInequalities import *
 from DSGRN.SaveDatabaseJSON import *
 import sys
 import os
