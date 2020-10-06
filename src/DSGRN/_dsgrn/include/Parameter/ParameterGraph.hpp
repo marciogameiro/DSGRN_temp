@@ -180,7 +180,12 @@ index ( Parameter const& p ) const {
 }
 
 INLINE_IF_HEADER_ONLY std::vector<uint64_t> ParameterGraph::
-adjacencies ( const uint64_t myindex ) const {
+adjacencies ( const uint64_t myindex, std::string const& type ) const {
+  // The default value for type is "", which uses the default type "pre"
+  std::string adj_type = type.empty() ? "pre" : type;
+  if ( not ( adj_type == "pre" or adj_type == "fixedorder" or adj_type == "codim1" ) ) {
+    throw std::runtime_error ( "Invalid adjacency type!" );
+  }
   std::vector<uint64_t> output;
   Parameter p = parameter ( myindex );
   std::vector<LogicParameter> logics = p . logic ( );
@@ -191,16 +196,60 @@ adjacencies ( const uint64_t myindex ) const {
   std::vector<LogicParameter> logicsTmp = logics;
   std::vector<OrderParameter> ordersTmp = orders;
 
-  // Compute adjacent order parameters
-  for ( uint64_t d = 0; d < D; ++d ) {
-    std::vector<OrderParameter> op_adjacencies = orders [ d ] . adjacencies ( );
-    if ( op_adjacencies.size() > 0 ) {
-      for ( auto op_adj : op_adjacencies ) {
-        orders [ d ] = op_adj;
-        Parameter adj_p ( logics, orders, data_ -> network_ );
-        uint64_t index_adj = ParameterGraph::index ( adj_p );
-        if ( index_adj != -1 ) { output . push_back ( index_adj ); }
-        orders [ d ] = ordersTmp [ d ];
+  // Check if order adjacency correspond to a co-dim 1 boundary
+  auto codim1_adj_order = [&]( OrderParameter op_adj, uint64_t d ) {
+    // Get permutations for this and adjacent order parameters
+    std::vector<uint64_t> op_perm = orders [ d ] . permutation ( );
+    std::vector<uint64_t> adj_perm = op_adj . permutation ( );
+    // Get indices of permuted thresholds (should be 2)
+    std::vector<uint64_t> perm_thres;
+    for ( uint64_t i = 0; i < op_perm . size (); ++ i ) {
+      if ( not ( op_perm [i] == adj_perm [i] ) ) {
+        perm_thres . push_back (i);
+      }
+    }
+    // Number of permuted thresholds should be 2
+    if ( not ( perm_thres . size () == 2 ) ) {
+      throw std::runtime_error ( "Invalid adjacent order!" );
+    }
+    // Now check if adjacent order if a co-dim 1 order
+    // Indices of the swapped thresholds
+    uint64_t j0 = perm_thres [0];
+    uint64_t j1 = perm_thres [1];
+    // Get input/output sizes information
+    uint64_t n = data_ -> network_ . inputs ( d ) . size ();
+    uint64_t m = data_ -> network_  . outputs ( d ) . size ();
+    uint64_t N = ( 1LL << n );
+    // The adjacent order is a co-dim 1 order if there is no
+    // input combination (p_i) in between the two thresholds
+    // that got swapped. This is true if both thresholds
+    // produce the same signs for all input combinations.
+    for ( uint64_t i = 0; i < N; ++ i ) {
+      // Return false if signs differ
+      if ( logics [d] ( i * m + j0 ) != logics [d] ( i * m + j1 ) ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Compute adjacent order parameters if needed
+  // For type fixedorder do not want adjacent orders
+  if ( not ( type == "fixedorder" ) ) {
+    for ( uint64_t d = 0; d < D; ++d ) {
+      std::vector<OrderParameter> op_adjacencies = orders [ d ] . adjacencies ( );
+      if ( op_adjacencies.size() > 0 ) {
+        for ( auto op_adj : op_adjacencies ) {
+          // Check if adj order is co-dim 1 for type codim1
+          if ( ( type == "codim1" ) and ( not codim1_adj_order ( op_adj, d ) ) )
+            continue;
+          // Add adjacency order to list of adjacent parameters
+          orders [ d ] = op_adj;
+          Parameter adj_p ( logics, orders, data_ -> network_ );
+          uint64_t index_adj = ParameterGraph::index ( adj_p );
+          if ( index_adj != -1 ) { output . push_back ( index_adj ); }
+          orders [ d ] = ordersTmp [ d ];
+        }
       }
     }
   }
