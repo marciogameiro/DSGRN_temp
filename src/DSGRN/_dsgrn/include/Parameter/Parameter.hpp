@@ -253,6 +253,63 @@ parse ( std::string const& str ) {
 }
 
 INLINE_IF_HEADER_ONLY std::string Parameter::
+partialorders ( void ) const {
+  // Print parameter partial order
+  uint64_t D = data_ -> network_ . size ();
+  std::stringstream result_ss;
+  for ( uint64_t d = 0; d < D; ++ d ) {
+    uint64_t n = network() . inputs ( d ) . size ();
+    uint64_t m = network() . outputs ( d ) . size ();
+    uint64_t N = ( 1LL << n );
+    // Upper bound threshold for p_i
+    std::vector<uint64_t> upper_thres (N);
+    // Get order of input combinations and thresholds
+    for ( uint64_t i = 0; i < N; ++ i ) {
+      uint64_t j = 0;
+      while ( j < m && data_ -> logic_[d] ( i * m + j ) ) ++ j;
+      upper_thres [i] = j; // Threshold such that p_i < T_j
+    }
+    // Get partial order as a vector of string
+    std::vector<std::string> partial_order;
+    for ( uint64_t j = 0; j <= m; ++ j ) {
+      for ( uint64_t i = 0; i < N; ++ i ) {
+        if ( upper_thres [i] == j ) { // If p_i < T_j
+          std::stringstream p_ss;
+          p_ss << "p" << i;
+          partial_order . push_back ( p_ss . str () );
+        }
+      }
+      if ( j < m ) { // If j == m then p_i > all thresholds
+        uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
+        std::string node_name = network() . name ( d );
+        std::string target_name = network() . name( target );
+        std::stringstream thres_ss;
+        thres_ss << "T[" << node_name << "->" << target_name << "]";
+        partial_order . push_back ( thres_ss . str () );
+      }
+    }
+    // Form output string
+    std::string node_name = network() . name ( d );
+    result_ss << node_name << " : (";
+    bool first = true;
+    for ( auto item_str : partial_order ) {
+      if ( first ) {
+        result_ss << item_str;
+        first = false;
+      } else {
+        result_ss << ", " << item_str;
+      }
+    }
+    if ( d < D - 1 ) {
+      result_ss << ")\n";  
+    } else {
+      result_ss << ")";
+    }
+  }
+  return result_ss . str ();
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
 inequalities ( void ) const {
   // input_string
   //   Given an input edge i of a node d output the L/U indexing associated
@@ -317,7 +374,6 @@ inequalities ( void ) const {
     }
     return input_ss . str ();
   };
-
 
   std::stringstream ss;
   uint64_t D = data_ -> network_ . size ();

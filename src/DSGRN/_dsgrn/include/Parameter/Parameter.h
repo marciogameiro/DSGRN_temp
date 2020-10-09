@@ -103,6 +103,12 @@ public:
   void
   parse ( std::string const& str );
 
+  /// partialorders
+  ///    Output a string with the partial orders corresponding to the
+  ///    parameter inequalities.
+  std::string
+  partialorders ( void ) const;
+
   /// inequalities
   ///    Output a list of inequalities corresponding to the parameter node.
   ///    We output the list in a format which is compatible with Mathematica's syntax,
@@ -155,6 +161,7 @@ ParameterBinding (py::module &m) {
     .def("network", &Parameter::network)
     .def("stringify", &Parameter::stringify)
     .def("parse", &Parameter::parse)
+    .def("partialorders", &Parameter::partialorders)
     .def("inequalities", &Parameter::inequalities)
     .def("logic", &Parameter::logic)
     .def("order", &Parameter::order)
