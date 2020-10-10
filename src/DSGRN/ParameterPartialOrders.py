@@ -94,9 +94,38 @@ def factor_graph_inequalities(parameter_graph, par_index, node):
 def parameter_partial_orders(parameter_graph, par_index):
     D = parameter_graph.dimension()
     # Get parameter inequalities
-    parameter_ineqs = []
+    parameter_ineqs = ''
     for d in range(D):
         # Get inequalities for each factor graph
         factor_ineqs = factor_graph_inequalities(parameter_graph, par_index, d)
-        parameter_ineqs.append(factor_ineqs)
-    return parameter_ineqs
+        parameter_ineqs += factor_ineqs + '\n'
+    # Remove last '\n' and return
+    return parameter_ineqs.strip()
+
+def parameter_output_thresholds(parameter, node):
+    # Get outputs to node
+    outputs = parameter.network().outputs(node)
+    # Get number of outputs
+    n_outputs = len(outputs)
+    # Get output thresholds
+    output_thresholds = ''
+    for j in range(n_outputs):
+        out_thres = parameter.output_threshold(j, node)
+        output_thresholds += out_thres + '\n'
+    # Remove last '\n' and return
+    return output_thresholds.strip()
+
+def parameter_input_polynomials(parameter, node):
+    # Get inputs to node
+    inputs = parameter.network().inputs(node)
+    # Get number of inputs
+    n_inputs = len(inputs)
+    # Number of input combinations
+    n_in_combs = 2**n_inputs
+    # Get input polynomials
+    input_polynomials = ''
+    for i in range(n_in_combs):
+        in_poly = parameter.input_polynomial(i, node)
+        input_polynomials += in_poly + '\n'
+    # Remove last '\n' and return
+    return input_polynomials.strip()

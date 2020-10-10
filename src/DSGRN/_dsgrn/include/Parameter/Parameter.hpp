@@ -253,7 +253,56 @@ parse ( std::string const& str ) {
 }
 
 INLINE_IF_HEADER_ONLY std::string Parameter::
-partialorders ( void ) const {
+input_polynomial ( uint64_t in, uint64_t d ) const {
+  std::stringstream input_ss;
+  std::vector<std::vector<uint64_t>> logic = network () . logic ( d );
+  std::string const& node_name = network() . name ( d );
+  uint64_t n = network() . inputs ( d ) . size ();
+  input_ss << "p" << in << " = ";
+  // Corner case: n == 0 (no inputs)
+  if ( n == 0 ) {
+    input_ss << "B[" << node_name << "]";
+    return input_ss . str ();
+  }
+  uint64_t bit = 1;
+  uint64_t k = 0;
+  for ( auto const& factor : logic ) {
+    if ( factor . size () > 1 ) input_ss << "(";
+    bool inner_first = true;
+    for ( uint64_t source : factor ) {
+      if ( inner_first ) inner_first = false; else input_ss << " + ";
+      std::string source_name = network() . name( source );
+      if ( in & bit ) {
+        input_ss << "U[" << source_name << "->" << node_name << "]";
+      } else {
+        input_ss << "L[" << source_name << "->" << node_name << "]";
+      }
+      bit <<= 1;
+      ++ k;
+    }
+    if ( factor . size () > 1 ) input_ss << ")"; 
+    else if ( k < n ) input_ss << " ";
+  }
+  return input_ss . str ();
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
+output_threshold ( uint64_t j, uint64_t d ) const {
+  uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
+  std::string node_name = network() . name ( d );
+  std::string target_name = network() . name(target);
+  std::stringstream output_ss;
+  output_ss << "t" << j << " = T[" << node_name << "->" << target_name << "]";
+  return output_ss . str ();
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
+partialorders ( std::string const& type ) const {
+  // The default value for type is "", which uses the default type "t"
+  std::string thres_type = type.empty() ? "t" : type;
+  if ( not ( thres_type == "t" or thres_type == "T" ) ) {
+    throw std::runtime_error ( "Invalid threshold type!" );
+  }
   // Print parameter partial order
   uint64_t D = data_ -> network_ . size ();
   std::stringstream result_ss;
@@ -280,12 +329,23 @@ partialorders ( void ) const {
         }
       }
       if ( j < m ) { // If j == m then p_i > all thresholds
-        uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
-        std::string node_name = network() . name ( d );
-        std::string target_name = network() . name( target );
-        std::stringstream thres_ss;
-        thres_ss << "T[" << node_name << "->" << target_name << "]";
-        partial_order . push_back ( thres_ss . str () );
+        // Get output threshold in the format "tj = T[x->y]""
+        std::string out_thres = output_threshold ( j, d );
+        // Split string at char '=' to get tj and T[x->y]
+        std::stringstream thres_ss (out_thres);
+        std::string thres_t_str; // Get tj
+        std::getline (thres_ss, thres_t_str, '=');
+        std::string thres_T_str; // Get T[x->y]
+        std::getline (thres_ss, thres_T_str, '=');
+        if ( thres_type == "t" ) {
+          // Remove trailing whitespaces
+          thres_t_str = std::regex_replace(thres_t_str, std::regex(" +$"), "");
+          partial_order . push_back ( thres_t_str ); // Use tj
+        } else { // thres_type == "T"
+          // Remove leading whitespaces
+          thres_T_str = std::regex_replace(thres_T_str, std::regex("^ +"), "");
+          partial_order . push_back ( thres_T_str ); // Use T[x->y]
+        }
       }
     }
     // Form output string

@@ -103,11 +103,22 @@ public:
   void
   parse ( std::string const& str );
 
+  /// inpolynomial
+  ///   Given an input combination in to node d, return the algebraic
+  ///   formula of U's and L's associated with that input combination.
+  std::string
+  input_polynomial ( uint64_t in, uint64_t d ) const;
+
+  /// output_threshold
+  ///   Given an output edge j, output the associated threshold T
+  std::string
+  output_threshold ( uint64_t j, uint64_t d ) const;
+
   /// partialorders
   ///    Output a string with the partial orders corresponding to the
   ///    parameter inequalities.
   std::string
-  partialorders ( void ) const;
+  partialorders ( std::string const& type = "" ) const;
 
   /// inequalities
   ///    Output a list of inequalities corresponding to the parameter node.
@@ -161,7 +172,9 @@ ParameterBinding (py::module &m) {
     .def("network", &Parameter::network)
     .def("stringify", &Parameter::stringify)
     .def("parse", &Parameter::parse)
-    .def("partialorders", &Parameter::partialorders)
+    .def("input_polynomial", &Parameter::input_polynomial)
+    .def("output_threshold", &Parameter::output_threshold)
+    .def("partialorders", &Parameter::partialorders, py::arg("type") = "")
     .def("inequalities", &Parameter::inequalities)
     .def("logic", &Parameter::logic)
     .def("order", &Parameter::order)
