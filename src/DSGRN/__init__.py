@@ -1,5 +1,6 @@
 ### __init__.py
 ### MIT LICENSE 2018 Shaun Harker
+### MIT LICENSE 2020 Marcio Gameiro
 
 from DSGRN._dsgrn import *
 from DSGRN.SubdomainGraph import *

@@ -1,8 +1,10 @@
 /// ParameterGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+/// Marcio Gameiro
+/// 2020-10-06
 
-#pragma once 
+#pragma once
 
 #ifndef INLINE_IF_HEADER_ONLY
 #define INLINE_IF_HEADER_ONLY

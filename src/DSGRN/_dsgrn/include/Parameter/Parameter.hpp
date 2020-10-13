@@ -1,6 +1,8 @@
 /// Parameter.hpp
 /// Shaun Harker
 /// 2015-05-24
+/// Marcio Gameiro
+/// 2020-10-12
 
 #pragma once
 
@@ -288,7 +290,7 @@ input_polynomial ( uint64_t in, uint64_t d ) const {
 
 INLINE_IF_HEADER_ONLY std::string Parameter::
 output_threshold ( uint64_t j, uint64_t d ) const {
-  uint64_t target = network() . outputs ( d ) [ data_ -> order_[d](j) ];
+  uint64_t target = network() . outputs ( d ) [ j ];
   std::string node_name = network() . name ( d );
   std::string target_name = network() . name(target);
   std::stringstream output_ss;
@@ -329,8 +331,10 @@ partialorders ( std::string const& type ) const {
         }
       }
       if ( j < m ) { // If j == m then p_i > all thresholds
+        // Get original out edge order
+        uint64_t j0 = data_ -> order_[d](j);
         // Get output threshold in the format "tj = T[x->y]""
-        std::string out_thres = output_threshold ( j, d );
+        std::string out_thres = output_threshold ( j0, d );
         // Split string at char '=' to get tj and T[x->y]
         std::stringstream thres_ss (out_thres);
         std::string thres_t_str; // Get tj
