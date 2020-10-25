@@ -1,6 +1,6 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
-# 2020-09-21
+# 2020-10-25
 # MIT LICENSE
 
 import DSGRN
@@ -59,7 +59,7 @@ def parameter_graph_json(parameter_graph, vertices=None):
     # Get list of vertices if none
     if vertices == None:
         vertices = list(range(parameter_graph.size()))
-    all_edges = [(u, v) for u in vertices for v in parameter_graph.adjacencies(u) if v in vertices]
+    all_edges = [(u, v) for u in vertices for v in parameter_graph.adjacencies(u, 'codim1') if v in vertices]
     # Remove double edges (all edges are double)
     edges = [(u, v) for (u, v) in all_edges if u > v]
     nodes = []
@@ -178,16 +178,20 @@ def morse_graph_json(morse_graph):
     morse_graph_json_data = {"morse_graph" : morse_graph_data}
     return morse_graph_json_data
 
-def morse_sets_json(network, morse_decomposition):
+def morse_sets_json(network, morse_graph, morse_decomposition):
     """Return json data for Morse sets."""
     # Get a mapping from DSGRN top cells to cc top cells
     cell2cc_cell = dsgrn_cell_to_cc_cell_map(network)
     # Get list of Morse nodes
     morse_nodes = range(morse_decomposition.poset().size())
+    # Permutation that gives node index from Morse set index
+    permutation = morse_graph.permutation()
     morse_sets_data = [] # Morse sets data
     for morse_node in morse_nodes:
         morse_cells = [cell2cc_cell[c] for c in morse_decomposition.morseset(morse_node)]
-        morse_set = {"index" : morse_node, "cells" : morse_cells}
+        # Get Morse graph node index
+        morse_graph_node = permutation[morse_node]
+        morse_set = {"index" : morse_graph_node, "cells" : morse_cells}
         morse_sets_data.append(morse_set)
     morse_sets_json_data = {"morse_sets" : morse_sets_data}
     return morse_sets_json_data
@@ -224,7 +228,7 @@ def save_morse_graph_database_json(parameter_graph, database_fname, param_indice
         morse_decomposition = DSGRN.MorseDecomposition(domain_graph.digraph())
         morse_graph = DSGRN.MorseGraph(domain_graph, morse_decomposition)
         morse_graph_json_data = morse_graph_json(morse_graph)
-        morse_sets_json_data = morse_sets_json(network, morse_decomposition)
+        morse_sets_json_data = morse_sets_json(network, morse_graph, morse_decomposition)
         stg_json_data = state_transition_graph_json(network, domain_graph)
         # Dynamics data for this parameter
         dynamics_json_data = {"parameter" : par_index,

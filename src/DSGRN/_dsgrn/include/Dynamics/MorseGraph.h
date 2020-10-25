@@ -1,6 +1,8 @@
 /// MorseGraph.h
 /// Shaun Harker
 /// 2015-05-24
+/// Marcio Gameiro
+/// 2020-10-25
 
 #pragma once
 
@@ -58,6 +60,12 @@ public:
   std::unordered_map<uint64_t, Annotation> const&
   annotations ( void ) const;
 
+  /// permutation
+  ///   Returns the permutation applied to Morse decomposition
+  ///   vertices to get Morse graph vertices.
+  std::vector<uint64_t> const&
+  permutation ( void ) const;
+
   /// SHA
   ///   Return a SHA-256 code
   std::string
@@ -94,6 +102,7 @@ private:
 struct MorseGraph_ {
   Poset poset_;
   std::unordered_map<uint64_t, Annotation> annotations_;
+  std::vector<uint64_t> permutation_;
 };
 
 /// Python Bindings
@@ -112,6 +121,7 @@ MorseGraphBinding (py::module &m) {
     .def("assign", &MorseGraph::assign)
     .def("poset", &MorseGraph::poset)
     .def("annotation", &MorseGraph::annotation)
+    .def("permutation", &MorseGraph::permutation)
     .def("SHA256", &MorseGraph::SHA256)
     .def("__str__", &MorseGraph::stringify)
     .def("stringify", &MorseGraph::stringify)
