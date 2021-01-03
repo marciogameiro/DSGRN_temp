@@ -1,6 +1,9 @@
 /// Network.h
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-01-02
 
 #pragma once
 
@@ -59,6 +62,11 @@ public:
   std::vector<uint64_t> const&
   outputs ( uint64_t index ) const;
 
+  /// input_instances
+  ///   Return a list of input instances to a node
+  std::vector<uint64_t> const&
+  input_instances ( uint64_t index ) const;
+
   /// logic
   ///   Return the logic of a node (given by index)
   std::vector<std::vector<uint64_t>> const&
@@ -77,9 +85,9 @@ public:
 
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
-  ///   outputs(source)[order(source,target)] == target
+  ///   outputs(source)[order(source,target,instance)] == target
   uint64_t
-  order ( uint64_t source, uint64_t target ) const;
+  order ( uint64_t source, uint64_t target, uint64_t instance ) const;
 
   /// domains
   ///   Return a list consisting of the number of 
@@ -115,10 +123,14 @@ private:
 struct Network_ {
   std::vector<std::vector<uint64_t>> inputs_;
   std::vector<std::vector<uint64_t>> outputs_;
+  std::vector<std::vector<uint64_t>> input_instances_;
   std::unordered_map<std::string, uint64_t> index_by_name_;
   std::vector<std::string> name_by_index_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
+  // Use (source, target, instance) to allow multiple edges
+  // TODO: Use unordered_map to make it more efficient
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, uint64_t> order_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
   std::vector<std::vector<std::vector<uint64_t>>> logic_by_index_;
   std::vector<bool> essential_;
   std::string specification_;
@@ -142,6 +154,7 @@ NetworkBinding (py::module &m) {
     .def("name", &Network::name)
     .def("inputs", &Network::inputs)
     .def("outputs", &Network::outputs)
+    .def("input_instances", &Network::input_instances)
     .def("logic", &Network::logic)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)

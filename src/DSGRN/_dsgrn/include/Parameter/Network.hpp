@@ -1,6 +1,9 @@
 /// Network.hpp
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-01-02
 
 #pragma once
 
@@ -72,6 +75,11 @@ outputs ( uint64_t index ) const {
   return data_ ->  outputs_[index];
 }
 
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& Network:: 
+input_instances ( uint64_t index ) const {
+  return data_ -> input_instances_[index];
+}
+
 INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> const& Network::
 logic ( uint64_t index ) const {
   return data_ ->  logic_by_index_ [ index ];
@@ -81,7 +89,6 @@ INLINE_IF_HEADER_ONLY bool Network::
 essential ( uint64_t index ) const {
   return data_ -> essential_ [ index ];
 }
-  
 
 INLINE_IF_HEADER_ONLY bool Network::
 interaction ( uint64_t source, uint64_t target ) const {
@@ -89,8 +96,8 @@ interaction ( uint64_t source, uint64_t target ) const {
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
-order ( uint64_t source, uint64_t target ) const {
-  return data_ ->  order_ . find ( std::make_pair ( source, target ) ) -> second;
+order ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> order_ . find ( std::make_tuple (source, target, instance) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
@@ -194,10 +201,10 @@ _parse ( std::vector<std::string> const& lines ) {
     removeSpace(splitline[0]);
     // If begins with . or @, skip
     if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue; 
-    data_ ->  name_by_index_ . push_back ( splitline[0] );
+    data_ -> name_by_index_ . push_back ( splitline[0] );
     // If no logic specified, zero inputs.
     if ( splitline . size () < 2 ) {
-      logic_strings . push_back ( " ");
+      logic_strings . push_back ( " " );
     } else {
       logic_strings . push_back ( splitline[1] );
     }
@@ -213,8 +220,8 @@ _parse ( std::vector<std::string> const& lines ) {
   // Index the node names
   uint64_t loop_index = 0;
   data_ -> essential_ . resize ( essential_nodes . size () );
-  for ( auto const& name : data_ ->  name_by_index_ ) { 
-    data_ ->  index_by_name_ [ name ] = loop_index; 
+  for ( auto const& name : data_ -> name_by_index_ ) { 
+    data_ -> index_by_name_ [ name ] = loop_index; 
     data_ -> essential_ [ loop_index ] = essential_nodes [ name ];
     ++ loop_index;
   }
@@ -240,6 +247,7 @@ _parse ( std::vector<std::string> const& lines ) {
       //std::cout << "\n";
       factor . clear ();      
     };
+
     auto flush_token = [&] () {
       if ( token . empty () ) return;
       if ( not appending ) flush_factor ();
@@ -248,14 +256,15 @@ _parse ( std::vector<std::string> const& lines ) {
         throw std::runtime_error ( "Problem parsing network specification file: " 
                                    " Invalid input variable " + token );
       }
-      uint64_t source = data_ ->  index_by_name_ [ token ];
+      uint64_t source = data_ -> index_by_name_ [ token ];
       factor . push_back ( source );
-      data_ ->  edge_type_[std::make_pair( source, target )] = parity;
+      data_ -> edge_type_[std::make_pair( source, target )] = parity;
       //std::cout << "Creating edge from " << source << " to " << target << "\n";
       token . clear ();
       appending = false;
       parity = true;
     };
+
     for ( char c : logic_string ) {
       //std::cout << "Reading character " << c << "\n";
       if ( ( c == '\t' ) || (c == ' ') || (c == '(') || (c == ')') || (c == '+') || (c == '~') ) {
@@ -278,9 +287,9 @@ _parse ( std::vector<std::string> const& lines ) {
       //std::cout << "# ";
       for ( auto i : factor ) {
         //std::cout << i << " ";
-        if ( inputs . count ( i ) ) {
-          throw std::runtime_error ( "Problem parsing network specification file: Repeated inputs in logic" );
-        }
+        // if ( inputs . count ( i ) ) {
+        //   throw std::runtime_error ( "Problem parsing network specification file: Repeated inputs in logic" );
+        // }
         inputs . insert ( i );
       }
     }
@@ -297,19 +306,29 @@ _parse ( std::vector<std::string> const& lines ) {
     };
     // Put the logic struct into a canonical ordering.
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    data_ ->  logic_by_index_ . push_back ( logic_struct );
+    data_ -> logic_by_index_ . push_back ( logic_struct );
     //std::cout << "The logic_struct has been incorporated into the network.\n";
     ++ target;
   }
   // Compute inputs and outputs.
-  data_ ->  inputs_ . resize ( size () );
-  data_ ->  outputs_ . resize ( size () );
+  data_ -> inputs_ . resize ( size () );
+  data_ -> outputs_ . resize ( size () );
+  data_ -> input_instances_ . resize ( size () );
   for ( target = 0; target < size (); ++ target ) {
+    // Keep track of repeated inputs to target
+    std::unordered_map<uint64_t, uint64_t> input_counts;
     for ( auto const& factor : logic ( target ) ) {
       for ( uint64_t source : factor ) {
-        data_ ->  inputs_[target] . push_back ( source );
-        data_ ->  outputs_[source] . push_back ( target );
-        data_ ->  order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
+        uint64_t instance = 0; // Keep track of input instances
+        if ( input_counts . find (source) != input_counts . end() ) {
+          instance = input_counts . find (source) -> second;
+        }
+        input_counts [source] = instance + 1;
+        data_ -> inputs_[target] . push_back ( source );
+        data_ -> outputs_[source] . push_back ( target );
+        data_ -> input_instances_[target] . push_back ( instance );
+        // Output order of this instance of edge (source, target)
+        data_ -> order_[std::make_tuple(source, target, instance)] = data_ -> outputs_[source].size() - 1;
       }
     }
   }
