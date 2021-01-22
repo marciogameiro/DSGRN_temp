@@ -1,17 +1,19 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
-# 2020-09-09
+# 2020-09-21
 # MIT LICENSE
 
 import DSGRN
 import pychomp
+import itertools
 import json
 
 def dsgrn_cell_to_cc_cell_map(network):
-    # Return a mapping from the top dimensional cells
-    # in the DSGRN complex to the top dimensional
-    # cells in the pychomp cubical complex.
-    #
+    """Return a mapping from the top dimensional cells
+    in the DSGRN complex to the top dimensional
+    cells in the pychomp cubical complex.
+    """
+
     # Construct a cubical complex using pychomp. A cubical complex in pychomp
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp).
@@ -35,20 +37,19 @@ def dsgrn_cell_to_cc_cell_map(network):
     return cell2cc_cell
 
 def network_json(network):
-    # Return json data for network
+    """Return json data for network."""
     nodes = [] # Get network nodes
     for d in range(network.size()):
         node = {"id" : network.name(d)}
         nodes.append(node)
     # Get network edges
-    edges = [(u, v) for u in range(network.size()) for v in network.outputs(u)]
+    edges = [(u, v, k) for v in range(network.size()) for u, k in zip(network.inputs(v), network.input_instances(v))]
     links = []
-    for (u, v) in edges:
+    for (u, v, k) in edges:
         if network.model() == 'ecology':
-            # Always repressing for ecology model
-            edge_type = -1
+            edge_type = 1 if network.edge_sign(u, v, k) else -1
         else:
-            edge_type = 1 if network.interaction(u, v) else -1
+            edge_type = 1 if network.interaction(u, v, k) else -1
         link = {"source" : network.name(u),
                 "target" : network.name(v),
                 "type": edge_type}
@@ -57,7 +58,7 @@ def network_json(network):
     return network_json_data
 
 def parameter_graph_json(parameter_graph, vertices=None):
-    # Return json data for parameter graph
+    """Return json data for parameter graph."""
     # Get list of vertices if none
     if vertices == None:
         vertices = list(range(parameter_graph.size()))
@@ -78,7 +79,7 @@ def parameter_graph_json(parameter_graph, vertices=None):
     return parameter_graph_json_data
 
 def cubical_complex_json(network):
-    # Return json data for cubical complex
+    """Return json data for cubical complex."""
     # Get complex dimension
     dimension = network.size()
     # Construct a cubical complex using pychomp. A cubical complex in pychomp
@@ -118,19 +119,37 @@ def cubical_complex_json(network):
         coords_upper = [coords_lower[d] + (1 if shape & (1 << d) != 0 else 0) for d in range(dimension)]
         # Get index of vertex corresponding to these coords
         idx_upper = coords2idx[tuple(coords_upper)]
+        # Get indices of coords that have extent
+        ind_extent = [d for d in range(dimension) if shape & (1 << d) != 0]
         if cell_dim == 0:
             cell_verts = [idx_lower]
         elif cell_dim == 1:
             cell_verts = [idx_lower, idx_upper]
-# This is specific for 2D
-        else:
-            x1, y1 = coords_lower
-            x2, y2 = coords_upper
+        elif cell_dim == 2:
+            # Index of vertex 1
             idx1 = idx_lower
-            idx2 = coords2idx[(x2, y1)]
+            # Coords and index of vertex 2
+            coords_v2 = [coord for coord in coords_lower]
+            coords_v2[ind_extent[0]] += 1
+            idx2 = coords2idx[tuple(coords_v2)]
+            # Index of vertex 3
             idx3 = idx_upper
-            idx4 = coords2idx[(x1, y2)]
+            # Coords and index of vertex 4
+            coords_v4 = [coord for coord in coords_lower]
+            coords_v4[ind_extent[1]] += 1
+            idx4 = coords2idx[tuple(coords_v4)]
             cell_verts = [idx1, idx2, idx3, idx4]
+        elif cell_dim == 3: # cell_dim == dimension == 3
+            # First get vertices of unit cube as cartesian product of {0, 1}
+            u_verts = list(itertools.product((0, 1), repeat=cell_dim))
+            # Add verts of unit cube to coords_lower to get verts of this cell
+            cell_verts = []
+            for u in u_verts:
+                coords_vert = [sum(x) for x in zip(u, coords_lower)]
+                idx_vert = coords2idx[tuple(coords_vert)]
+                cell_verts.append(idx_vert)
+        else: # Ignore cell if dim > 3
+            continue
         cell = {"cell_dim" : cell_dim, "cell_index" : cell_index, "cell_verts" : cell_verts}
         cells.append(cell)
     complex_json_data = {"complex" : {"dimension" : dimension,
@@ -139,10 +158,10 @@ def cubical_complex_json(network):
     return complex_json_data
 
 def morse_graph_json(morse_graph):
-    # Return json data for Morse graph
+    """Return json data for Morse graph."""
 
     def vertex_rank(u):
-        # Return how many levels down of children u have
+        """Return how many levels down of children u have."""
         children = [v for v in morse_graph.poset().children(u)]
         if len(children) == 0:
             return 0
@@ -163,7 +182,7 @@ def morse_graph_json(morse_graph):
     return morse_graph_json_data
 
 def morse_sets_json(network, morse_decomposition):
-    # Return json data for Morse sets
+    """Return json data for Morse sets."""
     # Get a mapping from DSGRN top cells to cc top cells
     cell2cc_cell = dsgrn_cell_to_cc_cell_map(network)
     # Get list of Morse nodes
@@ -177,7 +196,7 @@ def morse_sets_json(network, morse_decomposition):
     return morse_sets_json_data
 
 def state_transition_graph_json(network, domain_graph):
-    # Return json data for state transiton graph
+    """Return json data for state transiton graph."""
     # Get a mapping from DSGRN top cells to cc top cells
     cell2cc_cell = dsgrn_cell_to_cc_cell_map(network)
     # Get state transition graph vertices
@@ -190,8 +209,11 @@ def state_transition_graph_json(network, domain_graph):
     stg_json_data = {"stg" : stg}
     return stg_json_data
 
-def save_morse_graph_database_json(network, database_fname, param_indices=None):
-    parameter_graph = DSGRN.ParameterGraph(network)
+def save_morse_graph_database_json(parameter_graph, database_fname, param_indices=None):
+    if parameter_graph.dimension() not in [2, 3]:
+        print('Only networks of dimension 2 or 3 are allowed!')
+        return
+    network = parameter_graph.network()
     if param_indices == None:
         param_indices = range(parameter_graph.size())
     network_json_data = network_json(network)

@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2020-05-25
+/// 2021-01-21
 
 #pragma once 
 
@@ -39,19 +39,30 @@ assign ( Network const& network ) {
     data_ -> reorderings_ *= data_ -> order_place_bases_ . back ();
     std::vector<std::vector<uint64_t>> const& logic_struct = data_ -> network_ . logic ( d );
     std::vector<bool> const& terms_sign = data_ -> network_ . logic_term_sign ( d );
+    bool dec_sign = data_ -> network_ . decay_sign ( d );
     std::stringstream ss;
     ss << path << "/" << n <<  "_" << m;
     // Set logic file name depending on model
     std::string model = data_ -> network_ . model ();
+    std::stringstream ss_neg;
+    std::stringstream ss_pos;
     uint64_t loop_index = 0;
     for ( auto const& p : logic_struct ) {
       if ( model == "original" ) {
-        ss <<  "_" << p . size();
+        ss_pos <<  "_" << p . size();
       } else { // model == "ecology"
-        ss <<  "_" << p . size() << (terms_sign [loop_index] ? "p" : "n");
+        // ss <<  "_" << p . size() << (terms_sign [loop_index] ? "p" : "n");
+        // Read logic files for negative decay and flip signs later if needed
+        if ( dec_sign != terms_sign [loop_index] ) {
+          ss_pos <<  "_" << p . size() << "p";
+        } else {
+          ss_neg <<  "_" << p . size() << "n";
+        }
       }
       ++ loop_index;
     }
+    // Add negative terms befor positive ones
+    ss << ss_neg . str() << ss_pos . str();
     // Add Ecology to the file name for ecology model
     if ( model == "ecology" ) {
       ss << "_Ecology";

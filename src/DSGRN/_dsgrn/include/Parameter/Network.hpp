@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2020-08-03
+/// 2021-01-21
 
 #pragma once
 
@@ -96,8 +96,21 @@ input_instances ( uint64_t index ) const {
   return data_ -> input_instances_[index];
 }
 
-INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> const& Network::
+INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> Network::
 logic ( uint64_t index ) const {
+  std::vector<std::vector<uint64_t>> logic_struct;
+  for ( auto const& term : data_ -> logic_by_index_ [ index ] ) {
+    std::vector<uint64_t> logic_term;
+    for ( EdgeTuple edge_tuple : term ) {
+      logic_term . push_back ( std::get<0> ( edge_tuple ) );
+    }
+    logic_struct . push_back ( logic_term );
+  }
+  return logic_struct;
+}
+
+INLINE_IF_HEADER_ONLY std::vector<std::vector<EdgeTuple>> Network::
+logic_by_index ( uint64_t index ) const {
   return data_ -> logic_by_index_ [ index ];
 }
 
@@ -107,13 +120,13 @@ essential ( uint64_t index ) const {
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
-interaction ( uint64_t source, uint64_t target ) const {
-  return data_ -> edge_type_ . find ( std::make_pair ( source, target ) ) -> second;
+interaction ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> edge_type_ . find ( std::make_tuple ( source, target, instance ) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
-edge_sign ( uint64_t source, uint64_t target ) const {
-  return data_ -> edge_sign_ . find ( std::make_pair ( source, target ) ) -> second;
+edge_sign ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> edge_sign_ . find ( std::make_tuple ( source, target, instance ) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY std::vector<bool> const& Network::
@@ -121,12 +134,17 @@ logic_term_sign ( uint64_t index ) const {
   return data_ -> logic_term_sign_ [ index ];
 }
 
+INLINE_IF_HEADER_ONLY bool Network::
+decay_sign ( uint64_t index ) const {
+  return data_ -> decay_sign_ [ index ];
+}
+
 INLINE_IF_HEADER_ONLY uint64_t Network::
 order ( uint64_t source, uint64_t target, uint64_t instance ) const {
   return data_ -> order_ . find ( std::make_tuple (source, target, instance) ) -> second;
 }
 
-INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> Network::
 domains ( void ) const {
   std::vector<uint64_t> result;
   for ( auto const& output : data_ -> outputs_ ) {
@@ -158,19 +176,20 @@ graphviz ( std::vector<std::string> const& theme ) const {
   std::string blunthead ("tee");
   // std::cout << "graphviz. Looping through edges.\n";
   for ( uint64_t target = 0; target < size (); ++ target ) {
-    std::vector<std::vector<uint64_t>> logic_struct = logic ( target );
+    std::vector<std::vector<EdgeTuple>> logic_struct = logic_by_index ( target );
     std::reverse ( logic_struct . begin (), logic_struct . end () ); // prefer black
-    std::vector<bool> terms_sign = logic_term_sign ( target );
-    std::reverse ( terms_sign . begin (), terms_sign . end () );
     uint64_t partnum = 0;
     uint64_t loop_index = 0;
-    for ( auto const& part : logic_struct ) {
-      for ( uint64_t source : part ) {
+    for ( auto const& term : logic_struct ) {
+      for ( EdgeTuple edge_tuple : term ) {
+        uint64_t source = std::get<0> ( edge_tuple );
+        bool edge_interaction = std::get<1> ( edge_tuple );
+        bool edge_sign = std::get<2> ( edge_tuple );
         // std::cout << "Checking type of edge from " << source << " to " << target << "\n";
-        std::string head = interaction(source,target) ? normalhead : blunthead;
+        std::string head = edge_interaction ? normalhead : blunthead;
         // For the ecology model the arrow head is based on the edge sign
         if ( model () == "ecology" ) {
-          head = terms_sign [loop_index] ? normalhead : blunthead;
+          head = edge_sign ? normalhead : blunthead;
         }
         result << "\"" << name(source) << "\" -> \"" << name(target)
                << "\" [color=" << theme[partnum+2] << " arrowhead=\"" << head << "\"];\n";
@@ -240,7 +259,7 @@ _parse ( std::vector<std::string> const& lines ) {
     if ( splitline . empty () ) continue;
     removeSpace(splitline[0]);
     // If begins with . or @, skip
-    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue; 
+    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@') ) continue; 
     data_ -> name_by_index_ . push_back ( splitline[0] );
     // If no logic specified, zero inputs.
     if ( splitline . size () < 2 ) {
@@ -280,8 +299,11 @@ _parse ( std::vector<std::string> const& lines ) {
   for ( uint64_t target = 0; target < size (); ++ target ) {
     // Keep track of repeated inputs to target
     std::unordered_map<uint64_t, uint64_t> input_counts;
-    for ( auto const& factor : logic ( target ) ) {
-      for ( uint64_t source : factor ) {
+    for ( auto const& term : logic_by_index ( target ) ) {
+      for ( EdgeTuple edge_tuple : term ) {
+      	uint64_t source = std::get<0> ( edge_tuple );
+      	bool parity = std::get<1> ( edge_tuple );
+      	bool edge_sign = std::get<2> ( edge_tuple );
         uint64_t instance = 0; // Keep track of input instances
         if ( input_counts . find (source) != input_counts . end() ) {
           instance = input_counts . find (source) -> second;
@@ -290,6 +312,8 @@ _parse ( std::vector<std::string> const& lines ) {
         data_ -> inputs_[target] . push_back ( source );
         data_ -> outputs_[source] . push_back ( target );
         data_ -> input_instances_[target] . push_back ( instance );
+        data_ -> edge_type_[std::make_tuple(source, target, instance)] = parity;
+        data_ -> edge_sign_[std::make_tuple(source, target, instance)] = edge_sign;
         // Output order of this instance of edge (source, target)
         data_ -> order_[std::make_tuple(source, target, instance)] = data_ -> outputs_[source].size() - 1;
       }
@@ -307,10 +331,14 @@ _parse_logic ( std::vector<std::string> const& logic_strings ) {
   // Example: a + ~ b c d + e  corresponds to (a+~b)(c)(d+e)
   uint64_t target = 0;
   for ( auto const& logic_string : logic_strings ) {
+    // For the regular DSGRN decay sign is always negative
+    bool decay_sign = false; // true for positive decay, false for negative
+    data_ -> decay_sign_ . push_back ( decay_sign );
     // std::cout << "Processing " << logic_string << "\n";
-    std::vector<std::vector<uint64_t>> logic_struct;
-    std::vector<uint64_t> factor;
+    std::vector<std::vector<EdgeTuple>> logic_struct;
+    std::vector<EdgeTuple> factor;
     std::string token;
+    bool edge_sign = true; // For regular DSGRN all edges are positive
     bool parity = true;
     bool appending = true;
 
@@ -319,9 +347,6 @@ _parse_logic ( std::vector<std::string> const& logic_strings ) {
       // Put factor into canonical ordering
       std::sort ( factor.begin(), factor.end() );
       logic_struct . push_back ( factor );
-      // std::cout << "    Flushing factor ";
-      // for ( uint64_t i : factor ) std::cout << name ( i ) << " ";
-      // std::cout << "\n";
       factor . clear ();
     };
 
@@ -334,10 +359,7 @@ _parse_logic ( std::vector<std::string> const& logic_strings ) {
                                    " Invalid input variable " + token );
       }
       uint64_t source = data_ -> index_by_name_ [ token ];
-      factor . push_back ( source );
-      data_ ->  edge_type_[std::make_pair( source, target )] = parity;
-      // For regular DSGRN all edges are positive
-      data_ -> edge_sign_[std::make_pair( source, target )] = true;
+      factor . push_back ( std::make_tuple(source, parity, edge_sign) );
       // std::cout << "Creating edge from " << source << " to " << target << "\n";
       token . clear ();
       appending = false;
@@ -363,32 +385,35 @@ _parse_logic ( std::vector<std::string> const& logic_strings ) {
     // Ensure logic_struct is acceptable (no repeats!)
     std::unordered_set<uint64_t> inputs;
     for ( auto const& factor : logic_struct ) {
-      // std::cout << "# ";
-      for ( auto i : factor ) {
-        // std::cout << i << " ";
-        if ( inputs . count ( i ) ) {
+      for ( auto edge_tuple : factor ) {
+        uint64_t source = std::get<0> ( edge_tuple );
+        if ( inputs . count ( source ) ) {
           throw std::runtime_error ( "Problem parsing network specification file: Repeated inputs in logic" );
         }
-        inputs . insert ( i );
+        inputs . insert ( source );
       }
     }
     // std::cout << "\n";
     // std::cout << "The logic_struct is acceptable.\n";
+
     // Compare partitions by (size, max), where size is length and max is maximum index
-    auto compare_partition = [](std::vector<uint64_t> const& lhs, std::vector<uint64_t> const& rhs) {
+    auto compare_partition = [](std::vector<EdgeTuple> const& lhs, std::vector<EdgeTuple> const& rhs) {
       if ( lhs . size () < rhs . size () ) return true;
       if ( lhs . size () > rhs . size () ) return false;
-      uint64_t max_lhs = * std::max_element ( lhs.begin(), lhs.end() );
-      uint64_t max_rhs = * std::max_element ( rhs.begin(), rhs.end() );
-      if ( max_lhs < max_rhs ) return true;
-      if ( max_lhs > max_rhs ) return false;  /* unreachable -> */ return false;
+      auto cmp_tuple = [](const auto& a, const auto& b) {
+        return std::get<0>(a) < std::get<0>(b);
+      };
+      EdgeTuple max_lhs = * std::max_element ( lhs.begin(), lhs.end(), cmp_tuple );
+      EdgeTuple max_rhs = * std::max_element ( rhs.begin(), rhs.end(), cmp_tuple );
+      if ( std::get<0>(max_lhs) < std::get<0>(max_rhs) ) return true;
+      if ( std::get<0>(max_lhs) > std::get<0>(max_rhs) ) return false;  /* unreachable -> */ return false;
     };
 
     // Put the logic struct into a canonical ordering.
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    data_ -> logic_by_index_ . push_back ( logic_struct );
     // For regular DSGRN all terms are positive
     std::vector<bool> logic_terms_sign ( logic_struct . size (), true);
+    data_ -> logic_by_index_ . push_back ( logic_struct );
     data_ -> logic_term_sign_ . push_back ( logic_terms_sign );
     // std::cout << "The logic_struct has been incorporated into the network.\n";
     ++ target;
@@ -405,27 +430,57 @@ _parse_logic_ecology ( std::vector<std::string> const& logic_strings ) {
   // For the ecology model the logic consists of sums or
   // subtraction of products. Example: x + y z w - u v
   uint64_t target = 0;
-  for ( auto const& logic_string : logic_strings ) {
+  for ( auto const& logic_str : logic_strings ) {
+  	bool decay_sign = false; // true for positive decay, false for negative
+    // Remove leading and trailing whitespaces of logic_str
+    std::string logic_string = std::regex_replace(logic_str, std::regex("^ +| +$|( ) +"), "$1");
+    // Get start and end positions of decay term sign
+    std::size_t decay_start = logic_string . find ( '<' );
+    std::size_t decay_end = logic_string . find ( '>' );
+    if ( (decay_start != std::string::npos) and (decay_end == std::string::npos) ) {
+      throw std::runtime_error ( "Decay term sign ending character > not found!" );
+    }
+    if ( (decay_end != std::string::npos) and (decay_start == std::string::npos) ) {
+      throw std::runtime_error ( "Decay term sign starting character < not found!" );
+    }
+    // If decay term sign found
+    if ( (decay_start != std::string::npos) and (decay_end != std::string::npos) ) {
+      if ( decay_start != 0 ) {
+        throw std::runtime_error ( "Decay term sign must be at the beginning of logic string!" );
+      }
+      // Here we are assuming that decay_start == 0
+      std::string decay_str = logic_string . substr(1, decay_end - 1);
+      std::string logic_str_right = logic_string . substr(decay_end + 1);
+      // Remove leading and trailing whitespaces
+      decay_str = std::regex_replace(decay_str, std::regex("^ +| +$|( ) +"), "$1");
+      logic_str_right = std::regex_replace(logic_str_right, std::regex("^ +| +$|( ) +"), "$1");
+      // Remove initial + if present
+      if ( logic_str_right[0] == '+' ) {
+        logic_string = logic_str_right . substr(1);
+      } else {
+        logic_string = logic_str_right;
+      }
+      // Get decay sign
+      if ( decay_str == "+" ) {
+        decay_sign = true;
+      } else if ( decay_str != "-" ) {
+        throw std::runtime_error ( "Decay sign must be just a + or - character!" );
+      }
+    }
+    data_ -> decay_sign_ . push_back ( decay_sign );
     // std::cout << "Processing " << logic_string << "\n";
-    std::vector<std::vector<uint64_t>> logic_struct;
-    std::vector<uint64_t> term;
+    // Each edge is represented by the a (index, parity, sign)
+    std::vector<std::vector<EdgeTuple>> logic_struct;
+    std::vector<EdgeTuple> term;
     std::string token;
-    bool self_edge_term_sign = false; // Sign of carrying capacity self edge
-    bool sign_edge = true; // true for positive edges, false for negative
+    bool edge_sign = true; // true for positive edges, false for negative
     bool parity = true; // Always true (activating) for now
 
     auto flush_term = [&] () {
       if ( term . empty () ) return;
-      // If a single term self edge set self_edge_term_sign
-      if ( (term . size () == 1) and (term[0] == target) ) {
-        self_edge_term_sign = sign_edge;
-      }
       // Put term into canonical ordering
       std::sort ( term.begin(), term.end() );
       logic_struct . push_back ( term );
-      // std::cout << "    Flushing term ";
-      // for ( uint64_t i : term ) std::cout << name ( i ) << " ";
-      // std::cout << "\n";
       term . clear ();
     };
 
@@ -437,9 +492,7 @@ _parse_logic_ecology ( std::vector<std::string> const& logic_strings ) {
                                    " Invalid input variable " + token );
       }
       uint64_t source = data_ -> index_by_name_ [ token ];
-      term . push_back ( source );
-      data_ -> edge_type_[std::make_pair( source, target )] = parity;
-      data_ -> edge_sign_[std::make_pair( source, target )] = sign_edge;
+      term . push_back ( std::make_tuple(source, parity, edge_sign) );
       // std::cout << "Creating edge from " << source << " to " << target << "\n";
       token . clear ();
       // parity = true; // Always true for now
@@ -456,89 +509,39 @@ _parse_logic_ecology ( std::vector<std::string> const& logic_strings ) {
         flush_term ();
       }
       if ( c == '+' ) {
-        sign_edge = true;
+        edge_sign = true;
       }
       if ( c == '-' ) {
-        sign_edge = false;
+        edge_sign = false;
       }
     }
     flush_token ();
     flush_term ();
     // std::cout << "The logic_struct formed.\n";
-    // Ensure logic_struct is acceptable (no repeats except for self edge!)
-    std::unordered_set<uint64_t> inputs;
-    bool repeated_self_edge = false;
-    for ( auto const& term : logic_struct ) {
-      // std::cout << "# ";
-      for ( auto i : term ) {
-        // std::cout << i << " ";
-        // Do not allow repeats except for self edges
-        if ( inputs . count ( i ) ) { // Repeated input edge
-          if ( i != target ) { // If is it not a self edge
-            throw std::runtime_error ( "Problem parsing network specification file: Repeated inputs in logic!" );
-          } else if ( self_edge_term_sign ) { // If it is positive a self edge
-            throw std::runtime_error ( "Repeated single term self edge cannot be positive!");
-          } else {
-            repeated_self_edge = true;
-          }
-        }
-        inputs . insert ( i );
-      }
-    }
-    // If there is a repeated input it is a double self edge
-    // Make sure one of them is part of a larger term
-    bool single_term_self_edge = false;
-    for ( auto const& term : logic_struct ) {
-      if ( (term . size () == 1) and (term[0] == target) ) {
-        if ( single_term_self_edge ) {
-          throw std::runtime_error ( "Repeated single term self edges not allowed!" );
-        } else {
-          single_term_self_edge = true;
-        }
-      }
-    }
-    // std::cout << "\n";
-    // std::cout << "The logic_struct is acceptable.\n";
+
     // Compare partitions by (size, max), where size is length and max is maximum index
-    auto compare_partition = [](std::vector<uint64_t> const& lhs, std::vector<uint64_t> const& rhs) {
+    auto compare_partition = [](std::vector<EdgeTuple> const& lhs, std::vector<EdgeTuple> const& rhs) {
       if ( lhs . size () < rhs . size () ) return true;
       if ( lhs . size () > rhs . size () ) return false;
-      uint64_t max_lhs = * std::max_element ( lhs.begin(), lhs.end() );
-      uint64_t max_rhs = * std::max_element ( rhs.begin(), rhs.end() );
-      if ( max_lhs < max_rhs ) return true;
-      if ( max_lhs > max_rhs ) return false;  /* unreachable -> */ return false;
+      auto cmp_tuple = [](const auto& a, const auto& b) {
+        return std::get<0>(a) < std::get<0>(b);
+      };
+      EdgeTuple max_lhs = * std::max_element ( lhs.begin(), lhs.end(), cmp_tuple );
+      EdgeTuple max_rhs = * std::max_element ( rhs.begin(), rhs.end(), cmp_tuple );
+      if ( std::get<0>(max_lhs) < std::get<0>(max_rhs) ) return true;
+      if ( std::get<0>(max_lhs) > std::get<0>(max_rhs) ) return false;  /* unreachable -> */ return false;
     };
+
     // Put the logic struct into a canonical ordering.
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-
-    // edge_sign may be overwritten because of double self edge
-    // so we define the term sign based on the non-self edges in
-    // the term and define the sign a single term self edge to
-    // be negative if it is a double edge.
-    auto sign_term = [&] (std::vector<uint64_t> const& term) {
-      if ( term . size () == 1 ) { // If it is a single term
-        auto source = term . front();
-        if ( (source == target) and repeated_self_edge ) {
-          return false; // Negative if repeated self edge
-        } else {
-          return edge_sign ( source, target ); // Edge sign defined before
-        }
-      } else { // Not a single term
-        for ( auto source : term ) { // Find a non-self edge
-          if ( source != target ) {
-            return edge_sign ( source, target ); // Edge sign defined before
-          }
-        }
-        // If we got to here there is a problem
-        throw std::runtime_error ( "Term with repeated self edge in a logic term!" );
-      }
-    };
-
     // Put negative terms before positive terms
-    std::vector<std::vector<uint64_t>> logic_sorted;
-    std::vector<std::vector<uint64_t>> logic_pos;
+    std::vector<std::vector<EdgeTuple>> logic_sorted;
+    std::vector<std::vector<EdgeTuple>> logic_pos;
     for ( auto const& term : logic_struct ) {
-      if ( sign_term ( term ) ) {
+      // Term sign is the sign of first element in term
+      // All the edges in a term have the same sign
+      bool term_sign = std::get<2>( term . front() );
+      if ( term_sign ) {
         logic_pos . push_back ( term );
       } else {
         logic_sorted . push_back ( term );
@@ -549,7 +552,8 @@ _parse_logic_ecology ( std::vector<std::string> const& logic_strings ) {
     // Assign the logic term signs
     std::vector<bool> logic_terms_sign;
     for ( auto const& term : logic_sorted ) {
-      logic_terms_sign . push_back ( sign_term ( term ) );
+      bool term_sign = std::get<2>( term . front() );
+      logic_terms_sign . push_back ( term_sign );
     }
     data_ -> logic_by_index_ . push_back ( logic_sorted );
     data_ -> logic_term_sign_ . push_back ( logic_terms_sign );
@@ -564,16 +568,18 @@ INLINE_IF_HEADER_ONLY std::ostream& operator << ( std::ostream& stream, Network 
   for ( uint64_t v = 0; v < network.size (); ++ v ) {
     if ( first1 ) first1 = false; else stream << ",";
     stream << "[\"" << network.name(v) << "\","; // node
-    std::vector<std::vector<uint64_t>> logic_struct = network.logic ( v );
+    std::vector<std::vector<EdgeTuple>> logic_struct = network.logic_by_index (v);
     stream << "["; // logic_struct
     bool first2 = true;
-    for ( auto const& part : logic_struct ) {
+    for ( auto const& term : logic_struct ) {
       if ( first2 ) first2 = false; else stream << ",";
       stream << "["; // factor
       bool first3 = true;
-      for ( uint64_t source : part ) {
+      for ( EdgeTuple edge_tuple : term ) {
+        uint64_t source = std::get<0> ( edge_tuple );
+        bool edge_interaction = std::get<1> ( edge_tuple );
         if ( first3 ) first3 = false; else stream << ",";
-        std::string head = network.interaction(source,v) ? "" : "~";
+        std::string head = edge_interaction ? "" : "~";
         stream << "\"" << head << network.name(source) << "\"";
       }
       stream << "]"; // factor

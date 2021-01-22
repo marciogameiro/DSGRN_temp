@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2020-08-03
+/// 2021-01-21
 
 #pragma once
 
@@ -65,9 +65,9 @@ combination ( Domain const& dom, int variable ) const {
     uint64_t source = data_ -> network_ . inputs ( variable ) [ index ];
     uint64_t instance = data_ -> network_ . input_instances ( variable ) [ index ];
     // std::cout << "    Analyze instance " << instance << " of source edge " << source << "\n";
-    bool activating = data_ -> network_ . interaction ( source, variable );
+    bool activating = data_ -> network_ . interaction ( source, variable, instance );
     // std::cout << "      This edge is " << (activating ? "activating" : "repressing" ) << ".\n";
-    int inedge = data_ -> network_ . order ( source, variable , instance );
+    int inedge = data_ -> network_ . order ( source, variable, instance );
     // std::cout << "      This edge is the " << inedge << "th ordered outedge of " << source << ".\n";
     int thres = data_ -> order_ [ source ] . inverse ( inedge );
     // std::cout << "      The input combination digit depends on which side of threshold " << thres << " on dimension " << source << " we are at.\n";
@@ -95,6 +95,9 @@ absorbing ( Domain const& dom, int collapse_dim, int direction ) const {
   std::vector<bool> input_combination = combination(dom, collapse_dim);
   //std::cout << "  Consulting parameter " <<  data_ -> logic_ [ collapse_dim ] . stringify () << ".\n";
   bool flow_direction = data_ -> logic_ [ collapse_dim ] ( input_combination, thres );
+  // Reverse the flow for positive decay
+  if ( network () . decay_sign ( collapse_dim ) )
+    flow_direction ^= true; // Toggle flow_direction
   //std::cout << "  Flow direction is to the " << (flow_direction ? "right" : "left") << "\n";
   if ( direction == -1 ) {
     //std::cout << "  Hence the left wall is " << ((flow_direction)?"not ":"") << "absorbing.\n";
@@ -152,7 +155,7 @@ labelling ( void ) const {
         uint64_t source = network () . inputs ( d ) [ inorder ];
         uint64_t instance = network () . input_instances ( d ) [ inorder ];
         // std::cout << "instance = " << instance << ", source = " << source << "\n";
-        bool activating = network () . interaction ( source, d );
+        bool activating = network () . interaction ( source, d, instance );
         // std::cout << "high is activating? " << ( activating ? "yes" : "no" ) << "\n";
         int outorder = network () . order ( source, d, instance );
         // std::cout << "outorder = " << outorder << "\n";
@@ -249,14 +252,14 @@ labelling ( void ) const {
     }
   }
 
-  // Reverse the flow for ecology model
-  if ( network() . model () == "ecology" ) {
-    for ( uint64_t dom_index = 0; dom_index < N; ++ dom_index ) {
-      uint64_t domain = dom_index;
-      for ( uint64_t d = 0; d < D; ++ d ) {
-        // Get coordinate in dimension d
-        uint64_t coord = domain % limits [d];
-        domain /= limits [d];
+  // Reverse the flow for positive decay
+  for ( uint64_t dom_index = 0; dom_index < N; ++ dom_index ) {
+    uint64_t domain = dom_index;
+    for ( uint64_t d = 0; d < D; ++ d ) {
+      // Get coordinate in dimension d
+      uint64_t coord = domain % limits [d];
+      domain /= limits [d];
+      if ( network () . decay_sign ( d ) ) {
         uint64_t mask_left = ( 1LL << d );
         uint64_t mask_right = ( 1LL << (D+d) );
         if ( coord > 0 ) { // Reverse flow on left wall
