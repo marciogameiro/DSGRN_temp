@@ -25,6 +25,7 @@ from DSGRN.Query.StableFCQuery import *
 from DSGRN.Query.ComputeSingleGeneQuery import *
 from DSGRN.ParameterInequalities import *
 from DSGRN.SaveDatabaseJSON import *
+from DSGRN.ParameterGraphEcology import *
 import sys
 import os
 import pickle

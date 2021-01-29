@@ -1,6 +1,9 @@
 /// ParameterGraph.h
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2021-01-22
 
 #pragma once 
 
@@ -88,7 +91,7 @@ public:
   fixedordersize ( void ) const;
 
   /// reorderings
-  ///   Return of reorderings
+  ///   Return number of reorderings
   ///   Note: size() = fixedordersize()*reorderings()
   uint64_t
   reorderings ( void ) const;
