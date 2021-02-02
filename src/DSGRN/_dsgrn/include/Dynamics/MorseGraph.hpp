@@ -1,6 +1,9 @@
 /// MorseGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2021-02-01
 
 #pragma once
 
@@ -95,6 +98,11 @@ annotation ( uint64_t v ) const {
 INLINE_IF_HEADER_ONLY std::unordered_map<uint64_t, Annotation> const& MorseGraph::
 annotations ( void ) const {
   return data_ -> annotations_;
+}
+
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& MorseGraph::
+permutation ( void ) const {
+  return data_ -> permutation_;
 }
 
 INLINE_IF_HEADER_ONLY std::string MorseGraph::
@@ -230,4 +238,5 @@ _canonicalize ( void ) {
     annotations[permutation[i]] = data_ -> annotations_ [ i ];
   }
   data_ -> annotations_ = annotations;
+  data_ -> permutation_ = permutation;
 }
