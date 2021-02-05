@@ -3,11 +3,13 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-01-02
+/// 2021-02-05
 
 #pragma once
 
 #include "common.h"
+
+typedef std::tuple<uint64_t,bool,bool> EdgeTuple;
 
 class Network_;
 
@@ -69,8 +71,13 @@ public:
 
   /// logic
   ///   Return the logic of a node (given by index)
-  std::vector<std::vector<uint64_t>> const&
+  std::vector<std::vector<uint64_t>>
   logic ( uint64_t index ) const;
+
+  /// logic_by_index
+  ///   Return the logic_by_index of a node (given by index)
+  std::vector<std::vector<EdgeTuple>>
+  logic_by_index ( uint64_t index ) const;
 
   /// essential
   ///   Return whether or not to use only essential logic parameters
@@ -81,7 +88,12 @@ public:
   ///   Return the interaction type of an edge:
   ///   False for repression, true for activation
   bool
-  interaction ( uint64_t source, uint64_t target ) const;
+  interaction ( uint64_t source, uint64_t target, uint64_t instance ) const;
+
+  /// edge_sign
+  ///   Return true for a positive edge and false otherwise
+  bool
+  edge_sign ( uint64_t source, uint64_t target, uint64_t instance ) const;
 
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
@@ -126,12 +138,15 @@ struct Network_ {
   std::vector<std::vector<uint64_t>> input_instances_;
   std::unordered_map<std::string, uint64_t> index_by_name_;
   std::vector<std::string> name_by_index_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
   // Use (source, target, instance) to allow multiple edges
   // TODO: Use unordered_map to make it more efficient
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, bool> edge_type_;
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, bool> edge_sign_;
   std::map<std::tuple<uint64_t,uint64_t,uint64_t>, uint64_t> order_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_sign_;
   // std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
-  std::vector<std::vector<std::vector<uint64_t>>> logic_by_index_;
+  std::vector<std::vector<std::vector<EdgeTuple>>> logic_by_index_;
   std::vector<bool> essential_;
   std::string specification_;
 };
@@ -156,8 +171,10 @@ NetworkBinding (py::module &m) {
     .def("outputs", &Network::outputs)
     .def("input_instances", &Network::input_instances)
     .def("logic", &Network::logic)
+    .def("logic_by_index", &Network::logic_by_index)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
+    .def("edge_sign", &Network::edge_sign)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
     .def("specification", &Network::specification)

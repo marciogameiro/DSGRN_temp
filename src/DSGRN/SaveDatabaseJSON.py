@@ -1,7 +1,7 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
-# 2020-10-25
 # MIT LICENSE
+# 2021-02-05
 
 import DSGRN
 import pychomp
@@ -54,18 +54,22 @@ def network_json(network):
     network_json_data = {"network" : {"nodes" : nodes, "links" : links}}
     return network_json_data
 
-def parameter_graph_json(parameter_graph, vertices=None):
+def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None):
     """Return json data for parameter graph."""
     # Get list of vertices if none
     if vertices == None:
         vertices = list(range(parameter_graph.size()))
+    # Set empty dictionary for verts_colors if none
+    if verts_colors == None:
+        verts_colors = {}
     all_edges = [(u, v) for u in vertices for v in parameter_graph.adjacencies(u, 'codim1') if v in vertices]
     # Remove double edges (all edges are double)
     edges = [(u, v) for (u, v) in all_edges if u > v]
     nodes = []
     for v in vertices:
-        node = {"id" : v}
-        # node = {"id" : str(v)}
+        v_color = verts_colors[v] if v in verts_colors else "";
+        node = {"id" : v, "color" : v_color}
+        # node = {"id" : str(v), "color" : v_color}
         nodes.append(node)
     links = []
     for (u, v) in edges:

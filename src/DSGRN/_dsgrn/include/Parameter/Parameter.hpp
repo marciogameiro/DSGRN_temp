@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-01-02
+/// 2021-02-05
 
 #pragma once
 
@@ -65,7 +65,7 @@ combination ( Domain const& dom, int variable ) const {
     uint64_t source = data_ -> network_ . inputs ( variable ) [ index ];
     uint64_t instance = data_ -> network_ . input_instances ( variable ) [ index ];
     // std::cout << "    Analyze instance " << instance << " of source edge " << source << "\n";
-    bool activating = data_ -> network_ . interaction ( source, variable );
+    bool activating = data_ -> network_ . interaction ( source, variable, instance );
     // std::cout << "      This edge is " << (activating ? "activating" : "repressing" ) << ".\n";
     int inedge = data_ -> network_ . order ( source, variable , instance );
     // std::cout << "      This edge is the " << inedge << "th ordered outedge of " << source << ".\n";
@@ -152,7 +152,7 @@ labelling ( void ) const {
         uint64_t source = network () . inputs ( d ) [ inorder ];
         uint64_t instance = network () . input_instances ( d ) [ inorder ];
         // std::cout << "instance = " << instance << ", source = " << source << "\n";
-        bool activating = network () . interaction ( source, d );
+        bool activating = network () . interaction ( source, d, instance );
         // std::cout << "high is activating? " << ( activating ? "yes" : "no" ) << "\n";
         int outorder = network () . order ( source, d, instance );
         // std::cout << "outorder = " << outorder << "\n";
