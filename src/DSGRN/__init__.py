@@ -26,6 +26,7 @@ from DSGRN.Query.StableFCQuery import *
 from DSGRN.Query.ComputeSingleGeneQuery import *
 from DSGRN.EssentialParameterNeighbors import *
 from DSGRN.ParameterPartialOrders import *
+from DSGRN.ParameterFromSample import *
 from DSGRN.SaveDatabaseJSON import *
 import sys
 import os
