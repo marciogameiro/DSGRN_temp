@@ -1,7 +1,7 @@
 # ParameterGraphEcology.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-01-29
+# 2021-02-06
 
 import DSGRN
 from operator import mul
@@ -122,14 +122,17 @@ class ParameterGraphEcology:
         in_index = len(in_nodes) # Index of single term self-edge [d] in input list
         return 2**in_index # pj equals delta for j = 2**in_index
 
-    def __valid_hex_code(self, hex_code, d, check_thres=False):
+    def __valid_hex_code(self, hex_code, d, check_order=False, parameter=None):
         """Check if the hex_code is valid if node d has
         positive decay and a negative single term self-edge
         (the hex_code is automatically valid otherwise).
-        If check_thres is True it checks if the carrying
+        If check_order is True it checks if the carrying
         capacity threshold is below the pj corresponding
-        to the carrying capacity delta. Otherwise it only
+        to the carrying capacity delta, that is, check if
+        the order parameter is valid. Otherwise it only
         checks if there is at least one thrshold below pj.
+        If filter_level is 2 it also makes sure that the
+        carrying capacity threshold is the largest threshold.
         """
         # All hex codes are valid for negative decay
         if not self.__positive_decay(d):
@@ -146,17 +149,26 @@ class ParameterGraphEcology:
         j = self.__single_term_negative_self_edge_polynomial(d)
         # Index of pj in partial order
         pj_index = partial_order.index(j)
-        if not check_thres: # Just need a threshold before pj
+        if not check_order: # Just need a threshold before pj
             # If any threshold before pj
             if any(partial_order[i] < 0 for i in range(pj_index)):
                 return True
             return False
-        # Original (before permutation) negative single
-        # term self-edge threshold index
-        thres_index = self.__single_term_self_edge_threshold(d)
+        # Original (before permutation) negative single term
+        # self-edge threshold index, that is, t0, t1, ect.
+        tk = self.__single_term_self_edge_threshold(d)
+        # Threshold index for this order parameter, that is, the
+        # threshold index in this parameter that corresponds to
+        # the threshold tk in the original threshold index.
+        thres_index = parameter.order()[d].inverse(tk)
         # Negative value t representing this threshold in partial order
         t = thres_index - n_outputs
-        # If the threshold t is before pj is partial order
+        # Make sure tk is the largest threshold for filter_level = 2
+        if self.filter_level == 2:
+            for thres_pos in range(-n_outputs, 0):
+                if partial_order.index(t) < partial_order.index(thres_pos):
+                    return False
+        # If the threshold t is before pj in partial order
         if any(partial_order[i] == t for i in range(pj_index)):
             return True
         return False
@@ -167,14 +179,15 @@ class ParameterGraphEcology:
     def valid_parameter(self, parameter):
         for d in range(self.dimension()):
             hex_code = parameter.logic()[d].hex()
-            if not self.__valid_hex_code(hex_code, d, check_thres=True):
+            if not self.__valid_hex_code(hex_code, d, check_order=True, parameter=parameter):
                 return False
         return True
 
     def valid_index(self, full_index):
         return self.valid_parameter(self.full_pg.parameter(full_index))
 
-    def __init__(self, network):
+    def __init__(self, network, filter_level=1):
         # Initialize full parameter graph
         self.full_pg = DSGRN.ParameterGraph(network)
+        self.filter_level = filter_level
         self.valid_indices = [i for i in range(self.full_pg.size()) if self.valid_index(i)]
