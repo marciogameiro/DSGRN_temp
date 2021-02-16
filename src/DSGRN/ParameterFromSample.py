@@ -83,7 +83,7 @@ def nodeRegion(logic, samples, thetas):
     tempOrd = str(list(binSort(tempOrd)))
     return eval(tempOrd)
 
-def par_index_from_sample(parameter_graph, L, U, T):
+def par_index_from_sample_old(parameter_graph, L, U, T):
     network = parameter_graph.network()
     D = network.size()
     # The logic of each node, logics[d], is a list of the factor lengths
@@ -118,4 +118,56 @@ def par_index_from_sample(parameter_graph, L, U, T):
     parameter = DSGRN.Parameter(logic_parameters, order_parameters, network)
     # Get parameter index from parameter graph
     par_index = parameter_graph.index(parameter)
+    return par_index
+
+def index_from_partial_orders(parameter_graph, partial_orders):
+    network = parameter_graph.network()
+    D = network.size()
+    logic_parameters = []
+    order_parameters = []
+    for d in range(D):
+        n_inputs = len(network.inputs(d))
+        n_outputs = len(network.outputs(d))
+        # Extract numerical values (partial order can be numeric or string)
+        get_digit = lambda p : int(p[1]) if p[0] == 'p' else int(p[1]) - n_outputs
+        # Partial order for this node (with threshold permutations)
+        part_order = [p if isinstance(p, int) else get_digit(p) for p in partial_orders[d]]
+        # Get the thresholds from partial_order
+        thres = [p for p in part_order if p < 0]
+        # Get thresholds permutation (order parameter)
+        order = [p + n_outputs for p in thres]
+        # Get order parameter
+        order_parameters.append(DSGRN.OrderParameter(order))
+        # Add sorted thresholds (in increasing order) to partial order
+        partial_order = [thres.index(p) - n_outputs if p < 0 else p for p in part_order]
+        # Get hex code from partial order
+        hex_code = partial2hex(partial_order, n_inputs, n_outputs)
+        # Get logic parameter
+        logic_parameters.append(DSGRN.LogicParameter(n_inputs, n_outputs, hex_code))
+    # Get DSGRN parameter
+    parameter = DSGRN.Parameter(logic_parameters, order_parameters, network)
+    # Get parameter index from parameter graph
+    par_index = parameter_graph.index(parameter)
+    return par_index
+
+def par_index_from_sample(parameter_graph, L, U, T):
+    network = parameter_graph.network()
+    D = network.size()
+    # The logic of each node, logics[d], is a list of the factor lengths
+    logics = [[len(logic) for logic in network.logic(d)] for d in range(D)]
+    partial_orders = []
+    for d in range(D):
+        # Input edges from source s to target d
+        # Output edges from source d to target s
+        inputs = network.inputs(d)
+        inputs.sort(reverse=True)
+        n_inputs = len(inputs)
+        outputs = network.outputs(d)
+        outputs.sort(reverse=True)
+        n_outputs = len(outputs)
+        L_U_values = [[L[s, d], U[s, d]] for s in inputs]
+        T_values = [T[d, s] for s in outputs]
+        node_region = nodeRegion(logics[d], L_U_values, T_values)
+        partial_orders.append(node_region)
+    par_index = index_from_partial_orders(parameter_graph, partial_orders)
     return par_index
