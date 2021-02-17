@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-02-05
+/// 2021-02-16
 
 #pragma once
 
@@ -298,16 +298,19 @@ input_polynomial ( uint64_t in, uint64_t d ) const {
   }
   uint64_t bit = 1;
   uint64_t k = 0;
+  std::vector<uint64_t> input_counts;
   for ( auto const& factor : logic ) {
     if ( factor . size () > 1 ) input_ss << "(";
     bool inner_first = true;
     for ( uint64_t source : factor ) {
+      uint64_t instance = std::count ( input_counts . begin(), input_counts . end(), source );
+      input_counts . push_back ( source );
       if ( inner_first ) inner_first = false; else input_ss << " + ";
       std::string source_name = network() . name( source );
       if ( in & bit ) {
-        input_ss << "U[" << source_name << "->" << node_name << "]";
+        input_ss << "U[" << source_name << "->" << node_name << ", " << instance << "]";
       } else {
-        input_ss << "L[" << source_name << "->" << node_name << "]";
+        input_ss << "L[" << source_name << "->" << node_name << ", " << instance << "]";
       }
       bit <<= 1;
       ++ k;
@@ -320,11 +323,13 @@ input_polynomial ( uint64_t in, uint64_t d ) const {
 
 INLINE_IF_HEADER_ONLY std::string Parameter::
 output_threshold ( uint64_t j, uint64_t d ) const {
-  uint64_t target = network() . outputs ( d ) [ j ];
   std::string node_name = network() . name ( d );
+  std::vector<uint64_t> outputs = network() . outputs ( d );
+  uint64_t target = outputs [ j ];
+  uint64_t instance = std::count (outputs . begin(), outputs . begin() + j, target);
   std::string target_name = network() . name(target);
   std::stringstream output_ss;
-  output_ss << "t" << j << " = T[" << node_name << "->" << target_name << "]";
+  output_ss << "t" << j << " = T[" << node_name << "->" << target_name << ", " << instance << "]";
   return output_ss . str ();
 }
 
