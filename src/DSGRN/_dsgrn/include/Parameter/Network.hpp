@@ -1,6 +1,9 @@
 /// Network.hpp
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-03-02
 
 #pragma once
 
@@ -192,12 +195,14 @@ _parse ( std::vector<std::string> const& lines ) {
     auto splitline = split ( line, ':' );
     if ( splitline . empty () ) continue;
     removeSpace(splitline[0]);
+    // Skip if empty string
+    if ( splitline[0] == "" ) continue;
     // If begins with . or @, skip
-    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue; 
+    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue;
     data_ ->  name_by_index_ . push_back ( splitline[0] );
     // If no logic specified, zero inputs.
     if ( splitline . size () < 2 ) {
-      logic_strings . push_back ( " ");
+      logic_strings . push_back ( " " );
     } else {
       logic_strings . push_back ( splitline[1] );
     }
