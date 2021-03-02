@@ -1,8 +1,11 @@
 /// ParameterGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2021-01-30
 
-#pragma once 
+#pragma once
 
 #ifndef INLINE_IF_HEADER_ONLY
 #define INLINE_IF_HEADER_ONLY
@@ -33,7 +36,6 @@ assign ( Network const& network ) {
     uint64_t n = data_ -> network_ . inputs ( d ) . size ();
     // Treat the no out edge case as one out edge
     uint64_t m = data_ -> network_ . outputs ( d ) . size () ? data_ -> network_ . outputs ( d ) . size () : 1;
-    // uint64_t m = data_ -> network_ . outputs ( d ) . size ();
     data_ -> order_place_bases_ . push_back ( _factorial ( m ) );
     data_ -> reorderings_ *= data_ -> order_place_bases_ . back ();
     std::vector<std::vector<uint64_t>> const& logic_struct = data_ -> network_ . logic ( d );
@@ -131,7 +133,6 @@ parameter ( uint64_t index ) const {
     uint64_t n = data_ -> network_ . inputs ( d ) . size ();
     // Treat the no out edge case as one out edge
     uint64_t m = data_ -> network_ . outputs ( d ) . size () ? data_ -> network_ . outputs ( d ) . size () : 1;
-    // uint64_t m = data_ -> network_ . outputs ( d ) . size ();
     std::string hex_code = data_ -> factors_ [ d ] [ logic_indices[d] ];
     LogicParameter logic_param ( n, m, hex_code );
     OrderParameter order_param ( m, order_indices[d] );

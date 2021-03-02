@@ -1,6 +1,9 @@
 /// Network.hpp
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-03-02
 
 #pragma once
 
@@ -81,11 +84,15 @@ INLINE_IF_HEADER_ONLY bool Network::
 essential ( uint64_t index ) const {
   return data_ -> essential_ [ index ];
 }
-  
 
 INLINE_IF_HEADER_ONLY bool Network::
 interaction ( uint64_t source, uint64_t target ) const {
   return data_ ->  edge_type_ . find ( std::make_pair ( source, target ) ) -> second;
+}
+
+INLINE_IF_HEADER_ONLY uint64_t Network::
+num_thresholds ( uint64_t index ) const {
+  return data_ -> num_thresholds_ [ index ];
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
@@ -96,10 +103,8 @@ order ( uint64_t source, uint64_t target ) const {
 INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
 domains ( void ) const {
   std::vector<uint64_t> result;
-  for ( auto const& output : data_ ->  outputs_ ) {
-    // Treat the no out edge case as one out edge
-    // result . push_back ( output . size () );
-    result . push_back ( output . size () ? output . size () + 1 : 2);
+  for ( auto n_thresholds : data_ -> num_thresholds_ ) {
+    result . push_back ( n_thresholds + 1 );
   }
   return result;
 }
@@ -138,7 +143,6 @@ graphviz ( std::vector<std::string> const& theme ) const {
   result << "}\n";
   return result . str ();
 }
-
 
 namespace DSGRN_parse_tools {
   // http://stackoverflow.com/questions/236129/split-a-string-in-c
@@ -195,12 +199,14 @@ _parse ( std::vector<std::string> const& lines ) {
     auto splitline = split ( line, ':' );
     if ( splitline . empty () ) continue;
     removeSpace(splitline[0]);
+    // Skip if empty string
+    if ( splitline[0] == "" ) continue;
     // If begins with . or @, skip
-    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue; 
+    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue;
     data_ ->  name_by_index_ . push_back ( splitline[0] );
     // If no logic specified, zero inputs.
     if ( splitline . size () < 2 ) {
-      logic_strings . push_back ( " ");
+      logic_strings . push_back ( " " );
     } else {
       logic_strings . push_back ( splitline[1] );
     }
@@ -315,6 +321,12 @@ _parse ( std::vector<std::string> const& lines ) {
         data_ ->  order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
       }
     }
+  }
+  // Set number of thresholds for each node
+  data_ -> num_thresholds_ . resize ( size () );
+  for ( uint64_t d = 0; d < size (); ++ d ) {
+    // Treat the no out edge case as one out edge
+    data_ -> num_thresholds_[d] = outputs ( d ) . size() ? outputs ( d ) . size() : 1;
   }
   //std::cout << "_parse complete.\n";
 }
