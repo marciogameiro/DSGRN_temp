@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-01-21
+/// 2021-03-05
 
 #pragma once
 
@@ -140,6 +140,11 @@ decay_sign ( uint64_t index ) const {
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
+num_thresholds ( uint64_t index ) const {
+  return data_ -> num_thresholds_ [ index ];
+}
+
+INLINE_IF_HEADER_ONLY uint64_t Network::
 order ( uint64_t source, uint64_t target, uint64_t instance ) const {
   return data_ -> order_ . find ( std::make_tuple (source, target, instance) ) -> second;
 }
@@ -147,8 +152,8 @@ order ( uint64_t source, uint64_t target, uint64_t instance ) const {
 INLINE_IF_HEADER_ONLY std::vector<uint64_t> Network::
 domains ( void ) const {
   std::vector<uint64_t> result;
-  for ( auto const& output : data_ -> outputs_ ) {
-    result . push_back ( output . size () + 1 );
+  for ( auto n_thresholds : data_ -> num_thresholds_ ) {
+    result . push_back ( n_thresholds + 1 );
   }
   return result;
 }
@@ -318,6 +323,17 @@ _parse ( std::vector<std::string> const& lines ) {
         data_ -> order_[std::make_tuple(source, target, instance)] = data_ -> outputs_[source].size() - 1;
       }
     }
+  }
+  // Set number of thresholds for each node
+  data_ -> num_thresholds_ . resize ( size () );
+  for ( uint64_t d = 0; d < size (); ++ d ) {
+    std::vector<uint64_t> outedges = outputs ( d );
+    // Treat the no out edge case as one out edge
+    uint64_t m = outedges . size() ? outedges . size() : 1;
+    // Get the number of self edges
+    uint64_t n_self_edges = std::count( outedges . begin(), outedges . end(), d );
+    // Each self edge creates an additional threshold
+    data_ -> num_thresholds_[d] = m + n_self_edges;
   }
   //std::cout << "_parse complete.\n";
 }

@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-01-21
+/// 2021-01-30
 
 #pragma once
 
@@ -110,6 +110,11 @@ public:
   bool
   decay_sign ( uint64_t index ) const;
 
+  /// num_thresholds
+  ///   Return the number of thresholds
+  uint64_t
+  num_thresholds ( uint64_t index ) const;
+
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
   ///   outputs(source)[order(source,target,instance)] == target
@@ -170,6 +175,7 @@ struct Network_ {
   // std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
   std::vector<std::vector<std::vector<EdgeTuple>>> logic_by_index_;
   std::vector<std::vector<bool>> logic_term_sign_;
+  std::vector<uint64_t> num_thresholds_; // Number of thresholds
   std::vector<bool> decay_sign_;
   std::vector<bool> essential_;
   std::string specification_;
@@ -203,6 +209,7 @@ NetworkBinding (py::module &m) {
     .def("edge_sign", &Network::edge_sign)
     .def("logic_term_sign", &Network::logic_term_sign)
     .def("decay_sign", &Network::decay_sign)
+    .def("num_thresholds", &Network::num_thresholds)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
     .def("specification", &Network::specification)
