@@ -1,23 +1,23 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-01-29
+# 2021-03-26
 
 import DSGRN
-import pychomp
+import pychomp2
 import itertools
 import json
 
 def dsgrn_cell_to_cc_cell_map(network):
     """Return a mapping from the top dimensional cells
     in the DSGRN complex to the top dimensional
-    cells in the pychomp cubical complex.
+    cells in the pychomp2 cubical complex.
     """
 
-    # Construct a cubical complex using pychomp. A cubical complex in pychomp
+    # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
-    # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    # cubes and ignore the last layer (called rightfringe in pychomp2).
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     dimension = network.size()
     # Mapping from DSGRN top cells to cc top cells
     cell2cc_cell = {}
@@ -83,17 +83,17 @@ def cubical_complex_json(network):
     """Return json data for cubical complex."""
     # Get complex dimension
     dimension = network.size()
-    # Construct a cubical complex using pychomp. A cubical complex in pychomp
+    # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
-    # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    # cubes and ignore the last layer (called rightfringe in pychomp2).
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     # Get vertices coordinates and set a
     # mapping from coords to its index in
     # the list of coordinates.
     verts_coords = []
     coords2idx = {}
     # Get the coords of all cells of dimension 0.
-    # The 0-dim cells in a cubical complex in pychomp
+    # The 0-dim cells in a cubical complex in pychomp2
     # are indexed from 0 to n-1, where n is the number
     # of 0-dim cells. Hence the cell_index coincides
     # with the index of coords in the list verts_coords.
@@ -111,10 +111,10 @@ def cubical_complex_json(network):
         # Get coords of the lower corner of the box
         coords_lower = cubical_complex.coordinates(cell_index)
         # Get index of vertex corresponding to these coords
-        # Due to the way pychomp index the 0-dim cells we get
+        # Due to the way pychomp2 index the 0-dim cells we get
         # that idx_lower == cell_index (see coords2idx above).
         idx_lower = coords2idx[tuple(coords_lower)]
-        # Get the shape of this cell (see pychomp)
+        # Get the shape of this cell (see pychomp2)
         shape = cubical_complex.cell_shape(cell_index)
         # Add 1 to the appropriate entries to get coords of the upper corner
         coords_upper = [coords_lower[d] + (1 if shape & (1 << d) != 0 else 0) for d in range(dimension)]

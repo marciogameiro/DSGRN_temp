@@ -13,6 +13,9 @@ Class @ref nlohmann::basic_json is a good entry point for the documentation.
 @see https://github.com/nlohmann/json to download the source code
 */
 
+// Modified by
+/// Marcio Gameiro
+/// 2021-03-25
 
 #pragma once
 
@@ -36,17 +39,17 @@ Class @ref nlohmann::basic_json is a good entry point for the documentation.
 #include <vector>
 
 // enable ssize_t on MinGW
-#ifdef __GNUC__
-    #ifdef __MINGW32__
-        #include <sys/types.h>
-    #endif
-#endif
+// #ifdef __GNUC__
+//     #ifdef __MINGW32__
+//         #include <sys/types.h>
+//     #endif
+// #endif
 
 // enable ssize_t for MSVC
-#ifdef _MSC_VER
-    #include <basetsd.h>
-    using ssize_t = SSIZE_T;
-#endif
+// #ifdef _MSC_VER
+//     #include <basetsd.h>
+//     using ssize_t = SSIZE_T;
+// #endif
 
 /*!
 @brief namespace for Niels Lohmann
@@ -6000,9 +6003,12 @@ basic_json_parser_59:
                 return;
             }
 
-            const ssize_t offset_start = m_start - m_content;
-            const ssize_t offset_marker = m_marker - m_start;
-            const ssize_t offset_cursor = m_cursor - m_start;
+            const auto offset_start = m_start - m_content;
+            const auto offset_marker = m_marker - m_start;
+            const auto offset_cursor = m_cursor - m_start;
+            // const ssize_t offset_start = m_start - m_content;
+            // const ssize_t offset_marker = m_marker - m_start;
+            // const ssize_t offset_cursor = m_cursor - m_start;
 
             m_buffer.erase(0, static_cast<size_t>(offset_start));
             std::string line;
