@@ -1,6 +1,9 @@
 # SingleGeneQuery.py
 # MIT LICENSE 2016
 # Shaun Harker
+#
+# Marcio Gameiro
+# 2021-03-26
 
 from DSGRN.Query.Graph import *
 from DSGRN.Query.Hexcodes import *
@@ -17,7 +20,7 @@ class SingleGeneQuery:
     # num_gene_param is the size of the factor graph associated with "gene"
     self.num_gene_param = database.indexing_place_bases[self.gene_index]
     # num_reduced_param is the product of the sizes of all remaining factor graphs, and reorderings of all genes (including "gene")
-    self.num_reduced_param = database.parametergraph.size() / self.num_gene_param
+    self.num_reduced_param = database.parametergraph.size() // self.num_gene_param
 
     # Create factor graph
     # TODO: The following algorithm for creating a factor graph takes O(NM^2) time, where N is length of hexcodes and M is size of factorgraph.
