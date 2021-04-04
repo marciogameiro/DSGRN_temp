@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-03-06
+/// 2021-04-04
 
 #pragma once
 
@@ -429,6 +429,130 @@ parse ( std::string const& str ) {
     data_ -> logic_ . back() . parse ( json::stringify ( network_node[1] )); //TODO inefficient
     data_ -> order_ . back() . parse ( json::stringify ( network_node[2] )); //TODO inefficient
   }
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
+input_polynomial ( uint64_t in, uint64_t d ) const {
+  std::stringstream input_ss;
+  std::vector<std::vector<uint64_t>> logic = network () . logic ( d );
+  std::string const& node_name = network() . name ( d );
+  uint64_t n = network() . inputs ( d ) . size ();
+  input_ss << "p" << in << " = ";
+  // Corner case: n == 0 (no inputs)
+  if ( n == 0 ) {
+    input_ss << "B[" << node_name << "]";
+    return input_ss . str ();
+  }
+  uint64_t bit = 1;
+  uint64_t k = 0;
+  std::vector<uint64_t> input_counts;
+  for ( auto const& factor : logic ) {
+    if ( factor . size () > 1 ) input_ss << "(";
+    bool inner_first = true;
+    for ( uint64_t source : factor ) {
+      uint64_t instance = std::count ( input_counts . begin(), input_counts . end(), source );
+      input_counts . push_back ( source );
+      if ( inner_first ) inner_first = false; else input_ss << " + ";
+      std::string source_name = network() . name( source );
+      if ( in & bit ) {
+        input_ss << "U[" << source_name << "->" << node_name << ", " << instance << "]";
+      } else {
+        input_ss << "L[" << source_name << "->" << node_name << ", " << instance << "]";
+      }
+      bit <<= 1;
+      ++ k;
+    }
+    if ( factor . size () > 1 ) input_ss << ")"; 
+    else if ( k < n ) input_ss << " ";
+  }
+  return input_ss . str ();
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
+output_threshold ( uint64_t j, uint64_t d ) const {
+  std::string node_name = network() . name ( d );
+  std::vector<uint64_t> outputs = network() . outputs ( d );
+  uint64_t target = outputs [ j ];
+  uint64_t instance = std::count (outputs . begin(), outputs . begin() + j, target);
+  std::string target_name = network() . name(target);
+  std::stringstream output_ss;
+  output_ss << "t" << j << " = T[" << node_name << "->" << target_name << ", " << instance << "]";
+  return output_ss . str ();
+}
+
+INLINE_IF_HEADER_ONLY std::string Parameter::
+partialorders ( std::string const& type ) const {
+  // The default value for type is "", which uses the default type "t"
+  std::string thres_type = type.empty() ? "t" : type;
+  if ( not ( thres_type == "t" or thres_type == "T" ) ) {
+    throw std::runtime_error ( "Invalid threshold type!" );
+  }
+  // Print parameter partial order
+  uint64_t D = data_ -> network_ . size ();
+  std::stringstream result_ss;
+  for ( uint64_t d = 0; d < D; ++ d ) {
+    uint64_t n = network() . inputs ( d ) . size ();
+    uint64_t m = network() . outputs ( d ) . size ();
+    uint64_t N = ( 1LL << n );
+    // Upper bound threshold for p_i
+    std::vector<uint64_t> upper_thres (N);
+    // Get order of input combinations and thresholds
+    for ( uint64_t i = 0; i < N; ++ i ) {
+      uint64_t j = 0;
+      while ( j < m && data_ -> logic_[d] ( i * m + j ) ) ++ j;
+      upper_thres [i] = j; // Threshold such that p_i < T_j
+    }
+    // Get partial order as a vector of string
+    std::vector<std::string> partial_order;
+    for ( uint64_t j = 0; j <= m; ++ j ) {
+      for ( uint64_t i = 0; i < N; ++ i ) {
+        if ( upper_thres [i] == j ) { // If p_i < T_j
+          std::stringstream p_ss;
+          p_ss << "p" << i;
+          partial_order . push_back ( p_ss . str () );
+        }
+      }
+      if ( j < m ) { // If j == m then p_i > all thresholds
+        // Get original out edge order
+        uint64_t j0 = data_ -> order_[d](j);
+        // Get output threshold in the format "tj = T[x->y]""
+        std::string out_thres = output_threshold ( j0, d );
+        // Split string at char '=' to get tj and T[x->y]
+        std::stringstream thres_ss (out_thres);
+        std::string thres_t_str; // Get tj
+        std::getline (thres_ss, thres_t_str, '=');
+        std::string thres_T_str; // Get T[x->y]
+        std::getline (thres_ss, thres_T_str, '=');
+        if ( thres_type == "t" ) {
+          // Remove trailing whitespaces
+          thres_t_str = std::regex_replace(thres_t_str, std::regex(" +$"), "");
+          partial_order . push_back ( thres_t_str ); // Use tj
+        } else { // thres_type == "T"
+          // Remove leading whitespaces
+          thres_T_str = std::regex_replace(thres_T_str, std::regex("^ +"), "");
+          partial_order . push_back ( thres_T_str ); // Use T[x->y]
+        }
+      }
+    }
+    // Form output string
+    std::string node_name = network() . name ( d );
+    result_ss << node_name << " : (";
+    bool first = true;
+    for ( auto item_str : partial_order ) {
+      if ( first ) {
+        result_ss << item_str;
+        first = false;
+      } else {
+        result_ss << ", " << item_str;
+      }
+    }
+    if ( d < D - 1 ) {
+      result_ss << ")\n";  
+    } else {
+      result_ss << ")";
+    }
+  }
+  return result_ss . str ();
 }
 
 INLINE_IF_HEADER_ONLY std::string Parameter::

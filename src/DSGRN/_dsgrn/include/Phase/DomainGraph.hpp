@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-01-18
+/// 2021-04-04
 
 #pragma once
 
@@ -42,24 +42,34 @@ assign ( Parameter const& parameter ) {
   data_ -> labelling_ = parameter . labelling ();
   Digraph & digraph = data_ -> digraph_;
   std::vector<uint64_t> & labelling = data_ -> labelling_;
+  uint64_t left_wall_mask = (1LL << D) - 1; // Set the first D bits
   for ( uint64_t i = 0; i < N; ++ i ) {
-    if ( labelling [ i ] == 0 ) {
+    // Check if the left wall bits, (labelling [ i ] & left_wall_mask),
+    // and the right wall bits, (labelling [ i ] >> D), are all equal.
+    // This includes stable and unstable equilibrium cells.
+    if ( (labelling [ i ] & left_wall_mask) == (labelling [ i ] >> D) ) {
       digraph . add_edge ( i, i );
     }
+    // For stable equilibria only
+    // if ( labelling [ i ] == 0 ) {
+    //   digraph . add_edge ( i, i );
+    // }
     uint64_t leftbit = 1;
     uint64_t rightbit = (1LL << D);
     for ( int d = 0; d < D; ++ d, leftbit <<= 1, rightbit <<= 1 ) {
       if ( labelling [ i ] & rightbit ) {
         uint64_t j = i + jump[d];
-//        if ( not (labelling [ j ] & leftbit) ) {
+        // Do not add double edges
+        if ( not (labelling [ j ] & leftbit) ) {
           digraph . add_edge ( i, j );
-//        }
+        }
       }
       if ( labelling [ i ] & leftbit ) {
         uint64_t j = i - jump[d];
-//        if ( not (labelling [ j ] & rightbit) ) {
+        // Do not add double edges
+        if ( not (labelling [ j ] & rightbit) ) {
           digraph . add_edge ( i, j );
-//        }
+        }
       }
     }
   }

@@ -1,23 +1,23 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-02-01
+# 2021-04-04
 
 import DSGRN
-import pychomp
+import pychomp2
 import itertools
 import json
 
 def dsgrn_cell_to_cc_cell_map(network):
     """Return a mapping from the top dimensional cells
     in the DSGRN complex to the top dimensional
-    cells in the pychomp cubical complex.
+    cells in the pychomp2 cubical complex.
     """
 
-    # Construct a cubical complex using pychomp. A cubical complex in pychomp
+    # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
-    # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    # cubes and ignore the last layer (called rightfringe in pychomp2).
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     dimension = network.size()
     # Mapping from DSGRN top cells to cc top cells
     cell2cc_cell = {}
@@ -57,7 +57,7 @@ def network_json(network):
     network_json_data = {"network" : {"nodes" : nodes, "links" : links}}
     return network_json_data
 
-def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None):
+def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None, thres_type=None):
     """Return json data for parameter graph."""
     # Get list of vertices if none
     if vertices == None:
@@ -65,14 +65,18 @@ def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None):
     # Set empty dictionary for verts_colors if none
     if verts_colors == None:
         verts_colors = {}
+    # Set thres_type to '' if not 'T'
+    if thres_type != 'T':
+        thres_type = '' # Uses the default 't' type
     all_edges = [(u, v) for u in vertices for v in parameter_graph.adjacencies(u) if v in vertices]
     # Remove double edges (all edges are double)
     edges = [(u, v) for (u, v) in all_edges if u > v]
     nodes = []
     for v in vertices:
-        v_color = verts_colors[v] if v in verts_colors else "";
-        node = {"id" : v, "color" : v_color}
-        # node = {"id" : str(v), "color" : v_color}
+        v_color = verts_colors[v] if v in verts_colors else ""
+        v_ineqs = parameter_graph.parameter(v).partialorders(thres_type).split('\n')
+        node = {"id" : v, "color" : v_color, "inequalities" : v_ineqs}
+        # node = {"id" : str(v), "color" : v_color, "inequalities" : v_ineqs}
         nodes.append(node)
     links = []
     for (u, v) in edges:
@@ -86,17 +90,17 @@ def cubical_complex_json(network):
     """Return json data for cubical complex."""
     # Get complex dimension
     dimension = network.size()
-    # Construct a cubical complex using pychomp. A cubical complex in pychomp
+    # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
-    # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    # cubes and ignore the last layer (called rightfringe in pychomp2).
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     # Get vertices coordinates and set a
     # mapping from coords to its index in
     # the list of coordinates.
     verts_coords = []
     coords2idx = {}
     # Get the coords of all cells of dimension 0.
-    # The 0-dim cells in a cubical complex in pychomp
+    # The 0-dim cells in a cubical complex in pychomp2
     # are indexed from 0 to n-1, where n is the number
     # of 0-dim cells. Hence the cell_index coincides
     # with the index of coords in the list verts_coords.
@@ -114,10 +118,10 @@ def cubical_complex_json(network):
         # Get coords of the lower corner of the box
         coords_lower = cubical_complex.coordinates(cell_index)
         # Get index of vertex corresponding to these coords
-        # Due to the way pychomp index the 0-dim cells we get
+        # Due to the way pychomp2 index the 0-dim cells we get
         # that idx_lower == cell_index (see coords2idx above).
         idx_lower = coords2idx[tuple(coords_lower)]
-        # Get the shape of this cell (see pychomp)
+        # Get the shape of this cell (see pychomp2)
         shape = cubical_complex.cell_shape(cell_index)
         # Add 1 to the appropriate entries to get coords of the upper corner
         coords_upper = [coords_lower[d] + (1 if shape & (1 << d) != 0 else 0) for d in range(dimension)]
@@ -217,7 +221,8 @@ def state_transition_graph_json(network, domain_graph):
     stg_json_data = {"stg" : stg}
     return stg_json_data
 
-def save_morse_graph_database_json(parameter_graph, database_fname, param_indices=None):
+def save_morse_graph_database_json(parameter_graph, database_fname, param_indices=None,
+                                   verts_colors=None, thres_type=None):
     if parameter_graph.dimension() not in [2, 3]:
         print('Only networks of dimension 2 or 3 are allowed!')
         return
@@ -226,7 +231,7 @@ def save_morse_graph_database_json(parameter_graph, database_fname, param_indice
         param_indices = range(parameter_graph.size())
     network_json_data = network_json(network)
     cell_complex_json_data = cubical_complex_json(network)
-    param_graph_json_data = parameter_graph_json(parameter_graph, param_indices)
+    param_graph_json_data = parameter_graph_json(parameter_graph, param_indices, verts_colors, thres_type)
     dynamics_database = [] # Dynamics database
     for par_index in param_indices:
         # Compute DSGRN dynamics
