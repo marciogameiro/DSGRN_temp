@@ -95,7 +95,7 @@ setup(
     zip_safe=False,
     url = 'https://github.com/marciogameiro/DSGRN',
     include_package_data = True,
-    install_requires=['scipy', 'matplotlib', 'numpy', 'graphviz','pychomp2'],
+    install_requires=['scipy', 'matplotlib', 'numpy', 'graphviz', 'progressbar2', 'jupyter', 'pychomp2'],
     extras_require={
         'MPI':  ["mpi4py"]
     }

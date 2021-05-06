@@ -1,7 +1,7 @@
 # ParameterFromSample.py
 # Marcio Gameiro and Lun Zhang
 # MIT LICENSE
-# 2021-02-05
+# 2021-05-05
 
 import DSGRN
 import numpy as np
@@ -128,10 +128,16 @@ def index_from_partial_orders(parameter_graph, partial_orders):
     for d in range(D):
         n_inputs = len(network.inputs(d))
         n_outputs = len(network.outputs(d))
+        # Get partial order for this node
+        partial_order = partial_orders[d]
+        # Transform into list if is a string
+        if isinstance(partial_order, str):
+            # Remove white space and parentheses and split string into a list
+            partial_order = partial_order.replace(' ', '')[1:-1].split(',')
         # Extract numerical values (partial order can be numeric or string)
-        get_digit = lambda p : int(p[1]) if p[0] == 'p' else int(p[1]) - n_outputs
+        get_digit = lambda p : int(p[1:]) if p[0] == 'p' else int(p[1:]) - n_outputs
         # Partial order for this node (with threshold permutations)
-        part_order = [p if isinstance(p, int) else get_digit(p) for p in partial_orders[d]]
+        part_order = [p if isinstance(p, int) else get_digit(p) for p in partial_order]
         # Get the thresholds from partial_order
         thres = [p for p in part_order if p < 0]
         # Get thresholds permutation (order parameter)
