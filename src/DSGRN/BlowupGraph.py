@@ -2,8 +2,11 @@
 ### Shaun Harker
 ### 2018-03-25
 ### MIT LICENSE
+#
+# Marcio Gameiro
+# 2021-03-26
 
-from pychomp import *
+from pychomp2 import *
 import datetime
 import operator
 import functools

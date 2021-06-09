@@ -3,13 +3,16 @@ import graphviz
 
 from DSGRN._dsgrn import *
 
-def DrawGraph(g):
+def DrawGraph(g, options=None):
   """
   Return an object which renders in Notebook visualizations.
   Works with any input g with a "graphviz" method returning a valid
   graphviz string
   """
-  return graphviz.Source(g.graphviz())
+  if options == None:
+    return graphviz.Source(g.graphviz())
+  # Pass options to graphviz method if provided
+  return graphviz.Source(g.graphviz(options))
 
 def DrawGraphWithHighlightedPath(g, path):
   """

@@ -1,6 +1,8 @@
 /// ParameterGraph.h
 /// Shaun Harker
 /// 2015-05-24
+/// Marcio Gameiro
+/// 2020-10-06
 
 #pragma once 
 
@@ -72,9 +74,11 @@ public:
   index ( Parameter const& p ) const;
 
   /// adjacencies
-  ///   Return the adjacent parameter indices to a given parameter index
+  ///   Return the adjacent parameter indices of the given type
+  ///   to a given parameter index. The default type is used if
+  ///   type is not specified.
   std::vector<uint64_t>
-  adjacencies ( uint64_t const index ) const;
+  adjacencies ( uint64_t const index, std::string const& type = "" ) const;
 
   /// network
   ///   Return network
@@ -133,7 +137,7 @@ ParameterGraphBinding (py::module &m) {
     .def("factorgraph", &ParameterGraph::factorgraph)
     .def("parameter", &ParameterGraph::parameter)    
     .def("index", &ParameterGraph::index)
-    .def("adjacencies", &ParameterGraph::adjacencies)
+    .def("adjacencies", &ParameterGraph::adjacencies, py::arg("index"), py::arg("type") = "")
     .def("network", &ParameterGraph::network)
     .def("fixedordersize", &ParameterGraph::fixedordersize)
     .def("reorderings", &ParameterGraph::reorderings)

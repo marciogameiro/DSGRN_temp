@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2020-05-31
+/// 2021-05-30
 
 #pragma once
 
@@ -78,20 +78,15 @@ public:
   bool
   interaction ( uint64_t source, uint64_t target ) const;
 
-  /// edge_sign
-  ///   Return true for a positive edge and false otherwise
+  /// ptm
+  ///   Return true for a PTM edge and false otherwise
   bool
-  edge_sign ( uint64_t source, uint64_t target ) const;
+  ptm ( uint64_t source, uint64_t target ) const;
 
-  /// ptm_edge
-  ///   Return true for a ptm edge and false otherwise
-  bool
-  ptm_edge ( uint64_t source, uint64_t target ) const;
-
-  /// decay_edge
+  /// decay
   ///   Return true for a decay edge and false otherwise
   bool
-  decay_edge ( uint64_t source, uint64_t target ) const;
+  decay ( uint64_t source, uint64_t target ) const;
 
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
@@ -114,11 +109,12 @@ public:
   /// graphviz
   ///   Return a graphviz string (dot language)
   std::string
-  graphviz ( std::vector<std::string> const& theme = 
-  { "aliceblue", // background color
-    "beige",     // node color
-    "black", "darkgoldenrod", "blue", "orange", "red", "yellow" // edge group colors
-  } ) const;
+  graphviz ( std::string const& join_type = "",
+             std::vector<std::string> const& theme = 
+             { "aliceblue", // background color
+               "beige",     // node color
+               "black", "darkgoldenrod", "blue", "orange", "red", "yellow" // edge group colors
+             } ) const;
 
   /// operator <<
   friend std::ostream& operator << ( std::ostream& stream, Network const& network );
@@ -136,7 +132,6 @@ struct Network_ {
   std::unordered_map<std::string, uint64_t> index_by_name_;
   std::vector<std::string> name_by_index_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_sign_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> ptm_edge_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> decay_edge_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
@@ -166,13 +161,13 @@ NetworkBinding (py::module &m) {
     .def("logic", &Network::logic)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
-    .def("edge_sign", &Network::edge_sign)
-    .def("ptm_edge", &Network::ptm_edge)
-    .def("decay_edge", &Network::decay_edge)
+    .def("ptm", &Network::ptm)
+    .def("decay", &Network::decay)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
     .def("specification", &Network::specification)
-    .def("graphviz", [](Network const& network){ return network.graphviz();})
+    .def("graphviz", [](Network const& network, std::string const& join_type)
+         {return network.graphviz(join_type);}, py::arg("join_type") = "")
     .def(py::pickle(
     [](Network const& p) { // __getstate__
         /* Return a tuple that fully encodes the state of the object */
