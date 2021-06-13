@@ -1,10 +1,10 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-01-29
+# 2021-06-11
 
 import DSGRN
-import pychomp
+import pychomp2
 import itertools
 import json
 
@@ -17,7 +17,7 @@ def dsgrn_cell_to_cc_cell_map(network):
     # Construct a cubical complex using pychomp. A cubical complex in pychomp
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     dimension = network.size()
     # Mapping from DSGRN top cells to cc top cells
     cell2cc_cell = {}
@@ -86,7 +86,7 @@ def cubical_complex_json(network):
     # Construct a cubical complex using pychomp. A cubical complex in pychomp
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp).
-    cubical_complex = pychomp.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
     # Get vertices coordinates and set a
     # mapping from coords to its index in
     # the list of coordinates.

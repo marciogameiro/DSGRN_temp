@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-03-02
+/// 2021-06-11
 
 #pragma once
 
@@ -102,10 +102,11 @@ label ( uint64_t source, uint64_t target ) const {
   if ( source == target ) return 0;
   uint64_t i = direction(source, target);
   uint64_t j = regulator(source, target);
+  if ( i == j ) return 0;
   // Return 0 for no out-edge case
   if ( j == dimension () ) return 0;
-  if ( i == j ) return 0;
-  return 1L << ( j + ( ((source < target) ^ parameter().network().interaction(i,j)) ? 0 : dimension() ) );
+  bool interaction = parameter() . network() . interaction(i, j);
+  return 1L << ( j + ( ((source < target) ^ interaction) ? 0 : dimension() ) );
 }
 
 INLINE_IF_HEADER_ONLY uint64_t DomainGraph::
@@ -119,10 +120,6 @@ regulator ( uint64_t source, uint64_t target ) const {
   if ( source == target ) return dimension ();
   std::vector<uint64_t> limits = data_ -> parameter_ . network() . domains ();
   uint64_t variable = direction ( source, target );
-  // Return dimension() if no out-edges
-  if ( data_ -> parameter_ . network() . outputs ( variable ) . size () == 0 ) {
-    return dimension ();
-  }
   uint64_t domain = std::min ( source, target );
   for ( int d = 0; d < variable; ++ d ) {
     domain = domain / limits[d];

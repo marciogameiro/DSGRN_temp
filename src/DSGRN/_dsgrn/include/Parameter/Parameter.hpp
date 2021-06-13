@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-01-30
+/// 2021-06-11
 
 #pragma once
 
@@ -105,6 +105,10 @@ absorbing ( Domain const& dom, int collapse_dim, int direction ) const {
 
 INLINE_IF_HEADER_ONLY uint64_t Parameter::
 regulator ( uint64_t variable, uint64_t threshold ) const {
+  // Return dimension if no out-edges
+  if ( network() . outputs ( variable ) . size () == 0 ) {
+    return network() . size ();
+  }
   int inedge = order()[variable](threshold);
   return network() . outputs ( variable ) [ inedge ];
 }

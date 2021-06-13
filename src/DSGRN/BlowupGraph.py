@@ -3,7 +3,7 @@
 ### 2018-03-25
 ### MIT LICENSE
 
-from pychomp import *
+from pychomp2 import *
 import datetime
 import operator
 import functools
