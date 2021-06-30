@@ -1,7 +1,7 @@
 # NetworkSpecificationPTM.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-05-30
+# 2021-06-29
 
 import DSGRN
 import graphviz
@@ -47,20 +47,11 @@ def DrawNetworkPTM(ptm_net_spec):
         with open(ptm_net_spec, 'r') as f:
             ptm_net_spec = f.read()
 
-    def input_nodes(logic):
-        """Get input nodes from logic as a lists of decay nodes,
-        PTM pairs of nodes, and regular nodes"""
-        # First get the decay term
-        # Find substring enclosed by <>
-        pattern = '<.*?>' # RE pattern
-        decay_term = re.findall(pattern, logic)
-        # Remove substring from logic
-        logic = re.sub(pattern, '', logic)
-        # Replace '<', '>', '(', ')', and '+' by white spaces
-        decay_term = re.sub('[<()+>]', ' ', decay_term[0]) if decay_term else ''
-        # Get the decay term nodes names
-        decay_nodes = [s.strip() for s in decay_term.split(' ') if s.strip()]
-        # Next find the PTM pairs
+    def ptm_regular_nodes(logic):
+        """Get input nodes from logic as lists PTM pairs of
+        nodes and regular nodes. Assume that the decay term
+        delimiters < and > have been removed."""
+        # Find the PTM pairs
         # Find substrings enclosed by [] with a comma
         pattern = '\[.*?,.*?\]' # RE pattern
         ptm_terms = re.findall(pattern, logic)
@@ -73,13 +64,31 @@ def DrawNetworkPTM(ptm_net_spec):
             # Get the ptm pair nodes names
             ptm_pair = [s.strip() for s in ptm_term.split(' ') if s.strip()]
             ptm_pairs.append(ptm_pair)
-        # Finally get the regular terms
+        # Now get the regular terms
         # Replace '(', ')', and '+' by white spaces
         regular_terms = re.sub('[()+]', ' ', logic)
         # Get the regular terms nodes names
         regular_nodes = [s.strip() for s in regular_terms.split(' ') if s.strip()]
         # List of input nodes: first decay, then PTM, the regular
-        in_nodes = [decay_nodes, ptm_pairs, regular_nodes]
+        return ptm_pairs, regular_nodes
+
+    def input_nodes(logic):
+        """Get input nodes from logic as lists of ptm decay nodes,
+        decay nodes, PTM pairs of nodes, and regular nodes"""
+        # First get the decay term
+        # Find substring enclosed by <>
+        pattern = '<.*?>' # RE pattern
+        decay_term = re.findall(pattern, logic)
+        # Remove substring from logic
+        logic = re.sub(pattern, '', logic)
+        # Replace '<' and '>' by white spaces
+        decay_term = re.sub('[<>]', ' ', decay_term[0]) if decay_term else ''
+        # Get the ptm decay terms and the decay term node names
+        ptm_decay_pairs, decay_nodes = ptm_regular_nodes(decay_term)
+        # Get the the PTM pairs and regular terms node names
+        ptm_pairs, regular_nodes = ptm_regular_nodes(logic)
+        # List of input nodes: first ptm decay, then decay, PTM, and regular
+        in_nodes = [ptm_decay_pairs, decay_nodes, ptm_pairs, regular_nodes]
         return in_nodes
 
     # Get list of network specifications
@@ -96,21 +105,21 @@ def DrawNetworkPTM(ptm_net_spec):
     gv_edges = ''
     num_ptm_pairs = 0
     for n, logic in enumerate(logics):
-        # Get the decay, PTM, and regular input nodes
-        decay_nodes, ptm_pairs, regular_nodes = input_nodes(logic)
+        # Get the ptm decay, decay, PTM, and regular input nodes
+        ptm_decay_pairs, decay_nodes, ptm_pairs, regular_nodes = input_nodes(logic)
         # Add decay edges
         for node in decay_nodes:
-            name, head, size = (node[1:], 'diamond', '1.0') if node[0] == '~' else (node, 'box', '0.8')
-            # name, head = (node[1:], 'tee') if node[0] == '~' else (node, 'vee')
+            name, head = (node[1:], 'tee') if node[0] == '~' else (node, 'vee')
             u = node_names.index(name) # Get node index
-            gv_edges += str(u) + ' -> ' + str(n) + ' [style=dashed, arrowhead=' + head + ', arrowsize=' + size + '];\n'
+            gv_edges += str(u) + ' -> ' + str(n) + ' [style=dashed, arrowhead=' + head + '];\n'
         # Add regular edges
         for node in regular_nodes:
             name, head = (node[1:], 'tee') if node[0] == '~' else (node, 'vee')
             u = node_names.index(name) # Get node index
             gv_edges += str(u) + ' -> ' + str(n) + ' [style=solid, arrowhead=' + head + '];\n'
-        # Add (pairs of) PTM edges
-        for node1, node2 in ptm_pairs:
+        # Add (pairs of) PTM decay and regular PTM edges
+        ptm_decay_regular = ptm_decay_pairs + ptm_pairs
+        for node1, node2 in ptm_decay_regular:
             # Check if node1 is active (default is inactive)
             # A node is active if enclosed by []
             active = ('[' in node1) and (']' in node1)
@@ -130,9 +139,11 @@ def DrawNetworkPTM(ptm_net_spec):
             gv_edges += str(n) + ' -> ' + str(u3) + ' [style=invisible, dir=none];\n'
             # Do not use self edges in ranking the nodes
             constraint = 'false' if n in [u1, u2] else 'true'
-            gv_edges += str(u1) + ' -> ' + str(u3) + ' [style=solid, dir=none, headport=w];\n'
-            gv_edges += str(u3) + ' -> ' + str(n) + ' [style=solid, arrowhead=' + head1 + ', constraint=' + constraint + ', tailport=e];\n'
-            gv_edges += str(u2) + ' -> ' + str(u3) + ' [style=solid, arrowhead=' + head2 + '];\n'
+            # Make decay edges dashed
+            style = 'dashed' if ([node1, node2] in ptm_decay_pairs) else 'solid'
+            gv_edges += str(u1) + ' -> ' + str(u3) + ' [style=' + style + ', dir=none, headport=w];\n'
+            gv_edges += str(u3) + ' -> ' + str(n) + ' [style=' + style + ', arrowhead=' + head1 + ', constraint=' + constraint + ', tailport=e];\n'
+            gv_edges += str(u2) + ' -> ' + str(u3) + ' [style=' + style + ', arrowhead=' + head2 + '];\n'
             num_ptm_pairs += 1 # Increment PTM pairs counter
     gv_str += gv_edges + '}\n'
     return graphviz.Source(gv_str) # Return graphviz render

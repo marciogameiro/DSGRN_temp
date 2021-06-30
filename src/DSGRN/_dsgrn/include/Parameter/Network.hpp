@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-05-30
+/// 2021-06-29
 
 #pragma once
 
@@ -333,7 +333,7 @@ _parse ( std::vector<std::string> const& lines ) {
     uint64_t commas_found = 0;    // Number of commas in PTM term
     bool decay_term = false;      // True if there is a decay term
     bool ptm_term = false;        // True if there is a ptm term
-    bool first_char = false;      // True if first char is processed
+    bool first_char = false;      // True if first char was processed
     bool last_decay_char = false; // True if last char is last decay char
     bool ptm_factor = false;      // True if current factor has PTM edges
     bool decay_edge = false;
@@ -544,13 +544,18 @@ _parse ( std::vector<std::string> const& lines ) {
 
     // Put the logic struct into a canonical ordering
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    // Put decay factors first, ptm factors second, and regular factors last
+    // Put ptm decay factors first, regular decay factors second,
+    // ptm factors third, and regular factors last
     if ( decay_term || ptm_term ) { // If there is a decay or ptm term
+      std::vector<std::vector<uint64_t>> ptm_decay_factors;
       std::vector<std::vector<uint64_t>> decay_factors;
       std::vector<std::vector<uint64_t>> ptm_factors;
       std::vector<std::vector<uint64_t>> regular_factors;
       for ( auto const& factor : logic_struct ) {
-        if ( decayfactor ( factor ) ) {
+        if ( decayfactor ( factor ) and ptmfactor ( factor ) ) {
+          ptm_decay_factors . push_back ( factor );
+        }
+        else if ( decayfactor ( factor ) ) {
           decay_factors . push_back ( factor );
         }
         else if ( ptmfactor ( factor ) ) {
@@ -560,12 +565,14 @@ _parse ( std::vector<std::string> const& lines ) {
           regular_factors . push_back ( factor );
         }
       }
+      // Insert decay terms logic after the ptm decay terms logic
+      ptm_decay_factors . insert ( ptm_decay_factors . end (), decay_factors . begin (), decay_factors . end ());
       // Insert ptm terms logic after the decay terms logic
-      decay_factors . insert ( decay_factors . end (), ptm_factors . begin (), ptm_factors . end ());
+      ptm_decay_factors . insert ( ptm_decay_factors . end (), ptm_factors . begin (), ptm_factors . end ());
       // Insert regular terms logic at the end
-      decay_factors . insert ( decay_factors . end (), regular_factors . begin (), regular_factors . end ());
+      ptm_decay_factors . insert ( ptm_decay_factors . end (), regular_factors . begin (), regular_factors . end ());
       // Incorporated sorted logic structure into the network
-      data_ -> logic_by_index_ . push_back ( decay_factors );
+      data_ -> logic_by_index_ . push_back ( ptm_decay_factors );
     }
     else {
       // Incorporated sorted logic structure into the network

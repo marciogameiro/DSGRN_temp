@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-05-30
+/// 2021-06-29
 
 #pragma once
 
@@ -43,11 +43,13 @@ assign ( Network const& network ) {
     bool ptm_logic = false;
     for ( auto const& factor : logic_struct ) {
       auto source = factor . front();
-      if ( data_ -> network_ . decay ( source, d ) ) { // Decay factor
+      bool ptm_factor = data_ -> network_ . ptm ( source, d );
+      bool decay_factor = data_ -> network_ . decay ( source, d );
+      if ( decay_factor and (not ptm_factor) ) { // Regular decay factor
         ss << "_" << factor . size() << "d";
         ptm_logic = true;
       }
-      else if ( data_ -> network_ . ptm ( source, d ) ) { // PTM factor
+      else if ( ptm_factor ) { // PTM factor
         ss << "_";
         bool first = true;
         uint64_t n_edges = 0; // Number of regular edges in factor
@@ -65,7 +67,7 @@ assign ( Network const& network ) {
             n_edges++;
           }
         }
-        ss << n_edges;
+        ss << n_edges << (decay_factor ? "d" : "");
         ptm_logic = true;
       }
       else { // Regular factor
