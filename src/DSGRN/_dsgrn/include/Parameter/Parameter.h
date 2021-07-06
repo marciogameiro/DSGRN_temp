@@ -1,6 +1,7 @@
 /// Parameter.h
 /// Shaun Harker
 /// 2015-05-24
+///
 /// Marcio Gameiro
 /// 2020-10-10
 
@@ -105,7 +106,7 @@ public:
   void
   parse ( std::string const& str );
 
-  /// inpolynomial
+  /// input_polynomial
   ///   Given an input combination in to node d, return the algebraic
   ///   formula of U's and L's associated with that input combination.
   std::string
