@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-06-11
+/// 2021-07-04
 
 #pragma once
 
@@ -105,12 +105,45 @@ absorbing ( Domain const& dom, int collapse_dim, int direction ) const {
 
 INLINE_IF_HEADER_ONLY uint64_t Parameter::
 regulator ( uint64_t variable, uint64_t threshold ) const {
+  uint64_t num_outedges = network () . outputs ( variable ) . size ();
   // Return dimension if no out-edges
-  if ( network() . outputs ( variable ) . size () == 0 ) {
-    return network() . size ();
+  if ( num_outedges == 0 ) {
+    return network () . size ();
   }
-  int inedge = order()[variable](threshold);
-  return network() . outputs ( variable ) [ inedge ];
+
+  // If no extra thresholds (no self-edge threshold blowup)
+  if ( network () . num_thresholds ( variable ) == num_outedges ) {
+    uint64_t out_index = order () [ variable ] ( threshold );
+    return network () . outputs ( variable ) [ out_index ];
+  }
+
+  // The variable "threshold" correspond to the domain threshold.
+  // In case of self-edge threshold blowup this threshold may not
+  // be one of the out-edge thresholds. So we find the corresponding
+  // out-edge threshold and use it to get the target node.
+
+  // Get self-edge threshold (return dimension if no self-edge)
+  auto self_edge_threshold = [&]() {
+    for ( uint64_t thresh = 0; thresh < num_outedges; ++ thresh ) {
+      uint64_t out_index = order () [ variable ] ( thresh );
+      uint64_t target = network () . outputs ( variable ) [ out_index ];
+      if ( variable == target ) { // If self-edge
+        return thresh; // Return thresh
+      }
+    }
+    // No self-edge (return dimension)
+    return network () . size ();
+  };
+
+  uint64_t out_edge_threshold = threshold;
+  // If threshold is bigger than the self-edge threshold
+  // we need to subtract the extra threshold from it
+  if ( self_edge_threshold () < threshold ) {
+    out_edge_threshold -= 1;
+  }
+
+  uint64_t out_index = order () [ variable ] ( out_edge_threshold );
+  return network () . outputs ( variable ) [ out_index ];
 }
 
 INLINE_IF_HEADER_ONLY std::vector<uint64_t> Parameter::
@@ -124,10 +157,14 @@ labelling ( void ) const {
   std::vector<uint64_t> dom ( D );
   std::vector<uint64_t> width ( D );
 
-  std::vector<uint64_t> limits = network () . domains ();
+  std::vector<uint64_t> limits ( D );
+  // std::vector<uint64_t> limits = network () . domains ();
   std::vector<uint64_t> jump ( D ); // index offset in each dim
   uint64_t N = 1;
   for ( uint64_t d = 0; d < D; ++ d ) {
+    // Treat the no out edge case as one out edge
+    uint64_t m = network() . outputs ( d ) . size ();
+    limits [ d ] = (m ? m : 1) + 1;
     jump[d] =  N;
     N *= limits [ d ];
   }
@@ -224,6 +261,127 @@ labelling ( void ) const {
       }
     }
   }
+
+  // Next we create an extended complex by blowing up the
+  // co-dimension 1 faces defined by thresholds corresponding
+  // to self (repressing) edges. We first blow up all the
+  // co-dimension 1 faces, including the left most one in each
+  // dimension (which is 0 and not defined by a thershold) but
+  // not including the right most one (which is also not defined
+  // by a thereshold), and assign the labellings to all the
+  // domains from from the domains in the original (regular)
+  // cell complex. We then discard the blowup domains not
+  // corresponding to self (repressing) thresholds.
+  //
+  // Note: The labellings of the blowup domains which do not
+  // correspond to self thresholds are not necessarily correct
+  // as define below (but this is ok since these are the ones
+  // to be discarded).
+
+  // Create the data for the extended domain
+  uint64_t N_ext = 1;
+  for ( uint64_t d = 0; d < D; ++ d ) {
+    N_ext *= 2 * limits [ d ];
+  }
+
+  // N_ext is now the number of extended domains
+  std::vector<uint64_t> result_ext (N_ext, 0);
+  // Flag domains to be removed at the end
+  std::vector<bool> remove_domain (N_ext, false);
+  for ( uint64_t dom_ext = 0; dom_ext < N_ext; ++ dom_ext ) {
+    // Get regular domain index from extended domain index.
+    // If extended domain is a regular domain get the index
+    // of that regular domain. Otherwise get the index of the
+    // next regular domain for each dimension in which the
+    // extended domain does not coincide with a regular domain.
+    uint64_t dom_reg = 0;
+    uint64_t domain = dom_ext;
+    bool keep_domain = true;
+    std::vector<bool> regular_dom (D, true);
+    std::vector<uint64_t> coords_ext (D);
+    for ( uint64_t d = 0; d < D; ++ d ) {
+      // Get coordinate of dom_ext in dimension d
+      // Size of extended domain is 2 * limits
+      coords_ext [d] = domain % (2 * limits [d]);
+      domain /= (2 * limits [d]);
+      if ( coords_ext [d] % 2 == 0 ) { // Not a regular domain
+        regular_dom [d] = false;
+        dom_reg += (coords_ext [d] / 2) * jump[d];
+        if ( network() . outputs ( d ) .size () == 0 ) {
+          // Not self threshold domain since no out edge
+          keep_domain = false;
+        } else if ( coords_ext [d] == 0 ) {
+          // Remove left most domains
+          keep_domain = false;
+        } else { // coords_ext [d] > 0
+          // Threshold that generate this domain
+          uint64_t thres = coords_ext [d] / 2 - 1;
+          // Original out edge order of threshold
+          uint64_t j0 = data_ -> order_[d] (thres);
+          // If target node for this out edge is not self
+          if ( network() . outputs ( d ) [ j0 ] != d ) {
+            keep_domain = false; // Not self threshold domain
+          }
+        }
+      } else { // Regular domain
+        dom_reg += ((coords_ext [d] - 1) / 2) * jump[d];
+      }
+    }
+    // Do not set labels if not regular or self threshold domain
+    if ( not keep_domain ) {
+      // Remove this domain at the end
+      remove_domain [ dom_ext ] = true;
+      continue;
+    }
+    // Use dom_reg to set label for dom_ext
+    for ( uint64_t d = 0; d < D; ++ d ) {
+      // Regular domains to be used to
+      // set the left and right walls
+      uint64_t dom_reg_left = dom_reg;
+      uint64_t dom_reg_right = dom_reg;
+      uint64_t mask_left = 1LL << d;
+      uint64_t mask_right = 1LL << (D+d);
+      if ( regular_dom [d] ) { // For regular domain just copy labels
+        // Assuming that the n-th bit of x is 0, x |= y & (1LL << n)
+        // sets the n-th bit of x to be the n-th bit of y, that is,
+        // if the n-th bit of y is 0 then the n-th bit of x remains
+        // 0, otherwise it is set to 1.
+        result_ext [ dom_ext ] |= result [ dom_reg_left ] & mask_left;
+        result_ext [ dom_ext ] |= result [ dom_reg_right ] & mask_right;
+      } else { // Non-regular domain
+        if ( coords_ext [d] == 0 ) {
+          // Make it flow to the right, that is, leave
+          // left label as 0 and set right label to 1
+          result_ext [ dom_ext ] |= mask_right;
+        } else {
+          // Use previous domain in dim d for left wall
+          dom_reg_left -= jump[d];
+          // This is a non-regular domain in dimension d.
+          // So we use the negation of the right wall label of
+          // the left domain to set the left wall label of this
+          // domain, and we use the negation of the left wall
+          // label of the right domain to set the right wall
+          // of this domain.
+          if ( not (result [ dom_reg_left ] & mask_right) ) {
+            result_ext [ dom_ext ] |= mask_left;
+          }
+          if ( not (result [ dom_reg_right ] & mask_left) ) {
+            result_ext [ dom_ext ] |= mask_right;
+          }
+        }
+      }
+    }
+  }
+
+  result . clear ();
+
+  // Remove blowup domains not corresponding to self-edges
+  for ( uint64_t dom_ext = 0; dom_ext < N_ext; ++ dom_ext ) {
+    if ( not remove_domain [ dom_ext ] ) {
+      result . push_back (result_ext [ dom_ext ]);
+    }
+  }
+
   return result;
 }
 

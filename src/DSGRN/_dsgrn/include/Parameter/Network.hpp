@@ -223,7 +223,7 @@ _parse ( std::vector<std::string> const& lines ) {
   uint64_t loop_index = 0;
   data_ -> essential_ . resize ( essential_nodes . size () );
   for ( auto const& name : data_ ->  name_by_index_ ) { 
-    data_ ->  index_by_name_ [ name ] = loop_index; 
+    data_ -> index_by_name_ [ name ] = loop_index; 
     data_ -> essential_ [ loop_index ] = essential_nodes [ name ];
     ++ loop_index;
   }
@@ -306,27 +306,32 @@ _parse ( std::vector<std::string> const& lines ) {
     };
     // Put the logic struct into a canonical ordering.
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    data_ ->  logic_by_index_ . push_back ( logic_struct );
+    data_ -> logic_by_index_ . push_back ( logic_struct );
     //std::cout << "The logic_struct has been incorporated into the network.\n";
     ++ target;
   }
   // Compute inputs and outputs.
-  data_ ->  inputs_ . resize ( size () );
-  data_ ->  outputs_ . resize ( size () );
+  data_ -> inputs_ . resize ( size () );
+  data_ -> outputs_ . resize ( size () );
   for ( target = 0; target < size (); ++ target ) {
     for ( auto const& factor : logic ( target ) ) {
       for ( uint64_t source : factor ) {
-        data_ ->  inputs_[target] . push_back ( source );
-        data_ ->  outputs_[source] . push_back ( target );
-        data_ ->  order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
+        data_ -> inputs_[target] . push_back ( source );
+        data_ -> outputs_[source] . push_back ( target );
+        data_ -> order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
       }
     }
   }
   // Set number of thresholds for each node
   data_ -> num_thresholds_ . resize ( size () );
   for ( uint64_t d = 0; d < size (); ++ d ) {
+    std::vector<uint64_t> outedges = outputs ( d );
     // Treat the no out edge case as one out edge
-    data_ -> num_thresholds_[d] = outputs ( d ) . size() ? outputs ( d ) . size() : 1;
+    uint64_t m = outedges . size() ? outedges . size() : 1;
+    // Get the number of self edges
+    uint64_t n_self_edges = std::count( outedges . begin(), outedges . end(), d );
+    // Each self edge creates an additional threshold
+    data_ -> num_thresholds_[d] = m + n_self_edges;
   }
   //std::cout << "_parse complete.\n";
 }
