@@ -29,12 +29,6 @@ public:
   void
   assign ( Parameter const& parameter );
 
-  /// assign_extended
-  ///   Construct extended state transition graph
-  ///   based on parameter and network
-  void
-  assign_extended ( Parameter const& parameter );
-
   /// parameter
   ///   Return underlying parameter
   Parameter const
@@ -114,28 +108,14 @@ public:
 
 private:
   std::shared_ptr<DomainGraph_> data_;
-  /// _setRegularDomainLabelling
-  ///   Set the labelling of the extended regular domain dom_ext from
-  ///   the labelling of the original domain dom
-  void _setRegularDomainLabelling ( uint64_t dom_ext, uint64_t dom );
-  /// _setNonRegularDomainLabelling
-  ///   Set the labelling of the extended non regular domain dom_ext
-  void _setNonRegularDomainLabelling ( uint64_t dom_ext );
 };
 
 struct DomainGraph_ {
   uint64_t dimension_;
-  uint64_t N_;
   Digraph digraph_;
   Parameter parameter_;
   std::vector<uint64_t> labelling_;
   std::unordered_map<uint64_t,uint64_t> direction_;
-  std::vector<bool> self_repressor_;
-  std::vector<uint64_t> jump_ext_;
-  std::vector<uint64_t> regular_domain_;
-  std::vector<uint64_t> dim_self_threshold_;
-  std::vector<std::vector<bool>> label_left_wall_;
-  std::vector<std::vector<bool>> label_right_wall_;
 };
 
 /// Python Bindings

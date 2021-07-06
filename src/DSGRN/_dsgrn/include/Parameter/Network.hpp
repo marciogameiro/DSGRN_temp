@@ -1,6 +1,9 @@
 /// Network.hpp
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-03-02
 
 #pragma once
 
@@ -81,11 +84,15 @@ INLINE_IF_HEADER_ONLY bool Network::
 essential ( uint64_t index ) const {
   return data_ -> essential_ [ index ];
 }
-  
 
 INLINE_IF_HEADER_ONLY bool Network::
 interaction ( uint64_t source, uint64_t target ) const {
   return data_ ->  edge_type_ . find ( std::make_pair ( source, target ) ) -> second;
+}
+
+INLINE_IF_HEADER_ONLY uint64_t Network::
+num_thresholds ( uint64_t index ) const {
+  return data_ -> num_thresholds_ [ index ];
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
@@ -96,25 +103,8 @@ order ( uint64_t source, uint64_t target ) const {
 INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
 domains ( void ) const {
   std::vector<uint64_t> result;
-  for ( auto const& output : data_ ->  outputs_ ) {
-    result . push_back ( output . size () + 1);
-  }
-  return result;
-}
-
-INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
-domains_ext ( void ) const {
-  std::vector<uint64_t> result = domains ();
-  uint64_t D = size ();
-  for ( uint64_t d = 0; d < D; ++ d ) {
-    // Check if node d is a self repressor
-    std::vector<uint64_t> inputs = data_ -> inputs_ [d];
-    if ( std::find( inputs . begin(), inputs . end(), d ) != inputs . end() ) {
-      uint64_t source = d;
-      // bool activating = interaction ( source, d );
-      if ( not interaction ( source, d ) ) // if not activating
-        result [ d ] += 1;
-    }
+  for ( auto n_thresholds : data_ -> num_thresholds_ ) {
+    result . push_back ( n_thresholds + 1 );
   }
   return result;
 }
@@ -153,7 +143,6 @@ graphviz ( std::vector<std::string> const& theme ) const {
   result << "}\n";
   return result . str ();
 }
-
 
 namespace DSGRN_parse_tools {
   // http://stackoverflow.com/questions/236129/split-a-string-in-c
@@ -210,12 +199,14 @@ _parse ( std::vector<std::string> const& lines ) {
     auto splitline = split ( line, ':' );
     if ( splitline . empty () ) continue;
     removeSpace(splitline[0]);
+    // Skip if empty string
+    if ( splitline[0] == "" ) continue;
     // If begins with . or @, skip
-    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue; 
+    if ( (splitline[0][0] == '.') || (splitline[0][0] == '@' ) ) continue;
     data_ ->  name_by_index_ . push_back ( splitline[0] );
     // If no logic specified, zero inputs.
     if ( splitline . size () < 2 ) {
-      logic_strings . push_back ( " ");
+      logic_strings . push_back ( " " );
     } else {
       logic_strings . push_back ( splitline[1] );
     }
@@ -232,7 +223,7 @@ _parse ( std::vector<std::string> const& lines ) {
   uint64_t loop_index = 0;
   data_ -> essential_ . resize ( essential_nodes . size () );
   for ( auto const& name : data_ ->  name_by_index_ ) { 
-    data_ ->  index_by_name_ [ name ] = loop_index; 
+    data_ -> index_by_name_ [ name ] = loop_index; 
     data_ -> essential_ [ loop_index ] = essential_nodes [ name ];
     ++ loop_index;
   }
@@ -315,21 +306,32 @@ _parse ( std::vector<std::string> const& lines ) {
     };
     // Put the logic struct into a canonical ordering.
     std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    data_ ->  logic_by_index_ . push_back ( logic_struct );
+    data_ -> logic_by_index_ . push_back ( logic_struct );
     //std::cout << "The logic_struct has been incorporated into the network.\n";
     ++ target;
   }
   // Compute inputs and outputs.
-  data_ ->  inputs_ . resize ( size () );
-  data_ ->  outputs_ . resize ( size () );
+  data_ -> inputs_ . resize ( size () );
+  data_ -> outputs_ . resize ( size () );
   for ( target = 0; target < size (); ++ target ) {
     for ( auto const& factor : logic ( target ) ) {
       for ( uint64_t source : factor ) {
-        data_ ->  inputs_[target] . push_back ( source );
-        data_ ->  outputs_[source] . push_back ( target );
-        data_ ->  order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
+        data_ -> inputs_[target] . push_back ( source );
+        data_ -> outputs_[source] . push_back ( target );
+        data_ -> order_[std::make_pair(source,target)] = data_ ->  outputs_[source].size()-1;
       }
     }
+  }
+  // Set number of thresholds for each node
+  data_ -> num_thresholds_ . resize ( size () );
+  for ( uint64_t d = 0; d < size (); ++ d ) {
+    std::vector<uint64_t> outedges = outputs ( d );
+    // Treat the no out edge case as one out edge
+    uint64_t m = outedges . size() ? outedges . size() : 1;
+    // Get the number of self edges
+    uint64_t n_self_edges = std::count( outedges . begin(), outedges . end(), d );
+    // Each self edge creates an additional threshold
+    data_ -> num_thresholds_[d] = m + n_self_edges;
   }
   //std::cout << "_parse complete.\n";
 }

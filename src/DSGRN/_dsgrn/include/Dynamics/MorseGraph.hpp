@@ -1,6 +1,8 @@
 /// MorseGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+/// Marcio Gameiro
+/// 2020-10-25
 
 #pragma once
 
@@ -43,7 +45,6 @@ MorseGraph ( TypedObject const& sg ) {
     throw std::invalid_argument("MorseGraph: Unsupported argument type");
   }
 }
-
 
 INLINE_IF_HEADER_ONLY void MorseGraph::
 assign ( TypedObject const& a,
@@ -97,6 +98,11 @@ annotations ( void ) const {
   return data_ -> annotations_;
 }
 
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& MorseGraph::
+permutation ( void ) const {
+  return data_ -> permutation_;
+}
+
 INLINE_IF_HEADER_ONLY std::string MorseGraph::
 stringify ( void ) const {
   std::stringstream ss;
@@ -125,7 +131,6 @@ parse ( std::string const& str ) {
   }
   return *this;
 }
-
 
 INLINE_IF_HEADER_ONLY std::string MorseGraph::
 graphviz ( void ) const {
@@ -230,4 +235,5 @@ _canonicalize ( void ) {
     annotations[permutation[i]] = data_ -> annotations_ [ i ];
   }
   data_ -> annotations_ = annotations;
+  data_ -> permutation_ = permutation;
 }

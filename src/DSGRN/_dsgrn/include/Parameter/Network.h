@@ -1,6 +1,9 @@
 /// Network.h
 /// Shaun Harker
 /// 2015-05-22
+///
+/// Marcio Gameiro
+/// 2021-01-30
 
 #pragma once
 
@@ -75,6 +78,11 @@ public:
   bool
   interaction ( uint64_t source, uint64_t target ) const;
 
+  /// num_thresholds
+  ///   Return the number of thresholds
+  uint64_t
+  num_thresholds ( uint64_t index ) const;
+
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
   ///   outputs(source)[order(source,target)] == target
@@ -87,14 +95,6 @@ public:
   ///   for each dimension (i.e. network node)
   std::vector<uint64_t>
   domains ( void ) const;
-
-  /// domains_ext
-  ///   Return a list consisting of the number of extended
-  ///   domains across (i.e. number of out-edges plus one
-  ///   or plus two for self repressing edges)
-  ///   for each dimension (i.e. network node)
-  std::vector<uint64_t>
-  domains_ext ( void ) const;
 
   /// specification
   ///    Return the specification string (i.e. network spec file)
@@ -128,6 +128,7 @@ struct Network_ {
   std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
   std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
   std::vector<std::vector<std::vector<uint64_t>>> logic_by_index_;
+  std::vector<uint64_t> num_thresholds_; // Number of thresholds
   std::vector<bool> essential_;
   std::string specification_;
 };
@@ -153,9 +154,9 @@ NetworkBinding (py::module &m) {
     .def("logic", &Network::logic)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
+    .def("num_thresholds", &Network::num_thresholds)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
-    .def("domains_ext", &Network::domains_ext)
     .def("specification", &Network::specification)
     .def("graphviz", [](Network const& network){ return network.graphviz();})
     .def(py::pickle(
