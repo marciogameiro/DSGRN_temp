@@ -52,7 +52,7 @@ ParameterSampler::assign
     CAD_Databases . push_back ( json () );
     json & J = CAD_Databases . back ();
     // Load the file into the json object
-    std::cout << "Reading " << ss.str () << "\n";
+    // std::cout << "Reading " << ss.str () << "\n";
     std::ifstream infile (ss.str());
     if ( not infile.good() ) {
       throw std::runtime_error("Missing CAD database " + ss.str() );

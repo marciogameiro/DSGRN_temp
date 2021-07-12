@@ -1,6 +1,6 @@
 ### __init__.py
 ### MIT LICENSE 2018 Shaun Harker
-### MIT LICENSE 2020 Marcio Gameiro
+### MIT LICENSE 2021 Marcio Gameiro
 
 from DSGRN._dsgrn import *
 from DSGRN.SubdomainGraph import *
@@ -28,6 +28,7 @@ from DSGRN.EssentialParameterNeighbors import *
 from DSGRN.ParameterPartialOrders import *
 from DSGRN.ParameterFromSample import *
 from DSGRN.SaveDatabaseJSON import *
+from DSGRN.EquilibriumCells import *
 import sys
 import os
 import pickle
