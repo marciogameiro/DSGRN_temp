@@ -18,7 +18,7 @@ def dsgrn_cell_to_cc_cell_map(network):
     # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp2).
-    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([n + 1 for n in network.domains()])
     dimension = network.size()
     # Mapping from DSGRN top cells to cc top cells
     cell2cc_cell = {}
@@ -95,7 +95,7 @@ def cubical_complex_json(network):
     # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp2).
-    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([n + 1 for n in network.domains()])
     # Get vertices coordinates and set a
     # mapping from coords to its index in
     # the list of coordinates.
@@ -234,7 +234,7 @@ def state_transition_graph_json(network, domain_graph):
     stg_json_data = {"stg" : stg}
     return stg_json_data
 
-def DatabaseJSON(network, param_indices=None, verts_colors=None, eq_cells = 'False', thres_type=''):
+def DatabaseJSON(network, param_indices=None, verts_colors=None, eq_cells=False, thres_type=''):
     if network.size() not in [2, 3]:
         print('Only available for dimensions 2 and 3!')
         return
@@ -273,7 +273,7 @@ def DatabaseJSON(network, param_indices=None, verts_colors=None, eq_cells = 'Fal
     return morse_graph_database
 
 def SaveDatabaseJSON(network, database_fname, param_indices=None, verts_colors=None,
-                     eq_cells = 'False', thres_type=''):
+                     eq_cells=False, thres_type=''):
     morse_graph_database = DatabaseJSON(network, param_indices, verts_colors, eq_cells, thres_type)
     # Save database to a file
     with open(database_fname, 'w') as outfile:
