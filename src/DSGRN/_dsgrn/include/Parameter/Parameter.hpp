@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-07-04
+/// 2021-07-13
 
 #pragma once
 
@@ -321,6 +321,9 @@ labelling ( void ) const {
           // If target node for this out edge is not self
           if ( network() . outputs ( d ) [ j0 ] != d ) {
             keep_domain = false; // Not self threshold domain
+          } // Do not blowup positive self edges if pos_edge_blowup is false
+          else if ( ( not network() . pos_edge_blowup () ) and ( network() . interaction ( d, d ) ) ) {
+            keep_domain = false; // Positive self edge blowup domain
           }
         }
       } else { // Regular domain

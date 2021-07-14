@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-01-30
+/// 2021-07-13
 
 #pragma once
 
@@ -78,6 +78,11 @@ public:
   bool
   interaction ( uint64_t source, uint64_t target ) const;
 
+  /// pos_edge_blowup
+  ///   Return whether or not to blowup positive self-edges
+  bool
+  pos_edge_blowup ( void ) const;
+
   /// num_thresholds
   ///   Return the number of thresholds
   uint64_t
@@ -131,6 +136,7 @@ struct Network_ {
   std::vector<uint64_t> num_thresholds_; // Number of thresholds
   std::vector<bool> essential_;
   std::string specification_;
+  bool pos_edge_blowup_ = false; // Blowup positive self-edges if true
 };
 
 /// Python Bindings
@@ -154,6 +160,7 @@ NetworkBinding (py::module &m) {
     .def("logic", &Network::logic)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
+    .def("pos_edge_blowup", &Network::pos_edge_blowup)
     .def("num_thresholds", &Network::num_thresholds)
     .def("order", &Network::order)
     .def("domains", &Network::domains)

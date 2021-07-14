@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-03-02
+/// 2021-07-13
 
 #pragma once
 
@@ -37,9 +37,9 @@ assign ( std::string const& s ) {
 
 INLINE_IF_HEADER_ONLY void Network::
 load ( std::string const& filename ) {
-data_ . reset ( new Network_ );
+  data_ . reset ( new Network_ );
   std::ifstream infile ( filename );
-  if ( not infile . good () ) { 
+  if ( not infile . good () ) {
     throw std::runtime_error ( "Problem loading network specification file " + filename );
   }
   std::string line;
@@ -88,6 +88,11 @@ essential ( uint64_t index ) const {
 INLINE_IF_HEADER_ONLY bool Network::
 interaction ( uint64_t source, uint64_t target ) const {
   return data_ ->  edge_type_ . find ( std::make_pair ( source, target ) ) -> second;
+}
+
+INLINE_IF_HEADER_ONLY bool Network::
+pos_edge_blowup ( void ) const {
+  return data_ -> pos_edge_blowup_;
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
@@ -330,6 +335,12 @@ _parse ( std::vector<std::string> const& lines ) {
     uint64_t m = outedges . size() ? outedges . size() : 1;
     // Get the number of self edges
     uint64_t n_self_edges = std::count( outedges . begin(), outedges . end(), d );
+    // Do not count positive self edges if pos_edge_blowup is false
+    if ( ( not pos_edge_blowup () ) and ( n_self_edges > 0 ) ) {
+      if ( interaction ( d, d ) ) { // If positive self edge
+        n_self_edges = 0;
+      }
+    }
     // Each self edge creates an additional threshold
     data_ -> num_thresholds_[d] = m + n_self_edges;
   }
