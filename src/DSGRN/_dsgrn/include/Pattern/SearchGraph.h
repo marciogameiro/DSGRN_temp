@@ -2,6 +2,9 @@
 /// MIT LICENSE
 /// Shaun Harker and Bree Cummins
 /// 2016-03-19
+///
+/// Marcio Gameiro
+/// 2021-08-19
 
 #pragma once
 
@@ -23,6 +26,10 @@ public:
   SearchGraph ( DomainGraph dg );
 
   /// SearchGraph
+  ///   Create search graph from a domain graph excluding some variables
+  SearchGraph ( DomainGraph dg, std::vector<std::string> const& exclude_vars );
+
+  /// SearchGraph
   ///   Create search graph from a domain graph and a morse set index
   SearchGraph ( DomainGraph dg, uint64_t morse_set_index );
 
@@ -35,6 +42,11 @@ public:
   ///   Create search graph from a domain graph
   void
   assign ( DomainGraph dg );
+
+  /// assign
+  ///   Create search graph from a domain graph excluding some variables
+  void
+  assign ( DomainGraph dg, std::vector<std::string> const& exclude_vars );
 
   /// assign
   ///   Create search graph from a domain graph and a morse set index
@@ -129,6 +141,7 @@ SearchGraphBinding (py::module &m) {
     .def(py::init<>())
     .def(py::init<DomainGraph const&>())
     .def(py::init<DomainGraph const&, uint64_t>())
+    .def(py::init<DomainGraph const&, std::vector<std::string> const&>())
     .def(py::init<std::vector<uint64_t> const&, uint64_t>())
     .def("size", &SearchGraph::size)
     .def("dimension", &SearchGraph::dimension)

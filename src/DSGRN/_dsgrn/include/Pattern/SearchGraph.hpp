@@ -2,6 +2,9 @@
 /// MIT LICENSE
 /// Shaun Harker and Bree Cummins
 /// 2016-03-20
+///
+/// Marcio Gameiro
+/// 2021-08-19
 
 #pragma once
 
@@ -20,6 +23,11 @@ SearchGraph ( void ) {
 SearchGraph::
 SearchGraph ( DomainGraph dg ) {
   assign ( dg );
+}
+
+SearchGraph::
+SearchGraph ( DomainGraph dg, std::vector<std::string> const& exclude_vars ) {
+  assign ( dg, exclude_vars );
 }
 
 SearchGraph::
@@ -50,6 +58,61 @@ assign ( DomainGraph dg ) {
       if ( source == target ) continue; // Don't add self-edge to search graph.
       digraph . add_edge ( source, target );
       data_ -> event_ [ source ] [ target ] = dg . label ( source, target );
+    }
+  }
+  digraph . finalize ();
+}
+
+void SearchGraph::
+assign ( DomainGraph dg, std::vector<std::string> const& exclude_vars ) {
+  data_ . reset ( new SearchGraph_ );
+  uint64_t D = dg . dimension ();
+  data_ -> dimension_ = D;
+  Digraph & digraph = data_ -> digraph_;
+  // Create a name to index map
+  std::unordered_map<std::string, uint64_t> index_by_name;
+  for ( uint64_t index = 0; index < D; ++ index ) {
+    std::string name = dg . parameter () . network () . name ( index );
+    index_by_name [ name ] = index;
+  }
+  // Check if names are valid and set flags for exclude varibales
+  std::vector<bool> exclude (D, false);
+  for ( auto var_name : exclude_vars ) {
+    // Check if varibale name is valid
+    if ( index_by_name . count ( var_name ) == 0 ) {
+      throw std::runtime_error ( "Invalid variable name: " + var_name );
+    }
+    // Get variable index and set exclude to true
+    uint64_t index = index_by_name [ var_name ];
+    exclude [ index ] = true;
+  }
+
+  std::unordered_map<uint64_t, uint64_t> domain_to_vertex;
+  uint64_t N = dg . digraph() . size ();
+  for ( uint64_t domain = 0; domain < N; ++ domain ) {
+    uint64_t vertex_label = dg . label ( domain );
+    for ( auto var_name : exclude_vars ) {
+      uint64_t index = index_by_name [ var_name ];
+      // Clear bits index and index + D
+      vertex_label &= ~( (1LL << index) | (1LL << (index + D)) );
+      // vertex_label &= ~(1LL << index);
+      // vertex_label &= ~(1LL << (index + D));
+    }
+    data_ -> labels_ . push_back ( vertex_label );
+  }
+  digraph . resize ( N );
+  data_ -> event_ . resize ( N );
+  for ( uint64_t source = 0; source < N; ++ source ) {
+    for ( uint64_t target : dg . digraph() . adjacencies ( source ) ) {
+      if ( source == target ) continue; // Don't add self-edge to search graph.
+      digraph . add_edge ( source, target );
+      uint64_t edge_label = dg . label ( source, target );
+      uint64_t regulated_var = dg .regulator ( source, target );
+      // Set edge label to 0 if one of the exclude_vars
+      if ( exclude [ regulated_var ] ) {
+        edge_label = 0;
+      }
+      data_ -> event_ [ source ] [ target ] = edge_label;
     }
   }
   digraph . finalize ();
