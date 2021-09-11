@@ -4,7 +4,7 @@
 /// 2016-03-20
 ///
 /// Marcio Gameiro
-/// 2021-08-19
+/// 2021-09-10
 
 #pragma once
 
@@ -26,13 +26,18 @@ SearchGraph ( DomainGraph dg ) {
 }
 
 SearchGraph::
+SearchGraph ( DomainGraph dg, uint64_t morse_set_index ) {
+  assign ( dg, morse_set_index );
+}
+
+SearchGraph::
 SearchGraph ( DomainGraph dg, std::vector<std::string> const& exclude_vars ) {
   assign ( dg, exclude_vars );
 }
 
 SearchGraph::
-SearchGraph ( DomainGraph dg, uint64_t morse_set_index ) {
-  assign ( dg, morse_set_index );
+SearchGraph ( DomainGraph dg, uint64_t morse_set_index, std::vector<std::string> const& exclude_vars ) {
+  assign ( dg, morse_set_index, exclude_vars );
 }
 
 SearchGraph::
@@ -46,7 +51,6 @@ assign ( DomainGraph dg ) {
   data_ . reset ( new SearchGraph_ );
   data_ -> dimension_ = dg . dimension ();
   Digraph & digraph = data_ -> digraph_;
-  std::unordered_map<uint64_t, uint64_t> domain_to_vertex;
   uint64_t N = dg . digraph() . size ();
   for ( uint64_t domain = 0; domain < N; ++ domain ) {
     data_ -> labels_ . push_back ( dg . label ( domain ) );
@@ -64,61 +68,6 @@ assign ( DomainGraph dg ) {
 }
 
 void SearchGraph::
-assign ( DomainGraph dg, std::vector<std::string> const& exclude_vars ) {
-  data_ . reset ( new SearchGraph_ );
-  uint64_t D = dg . dimension ();
-  data_ -> dimension_ = D;
-  Digraph & digraph = data_ -> digraph_;
-  // Create a name to index map
-  std::unordered_map<std::string, uint64_t> index_by_name;
-  for ( uint64_t index = 0; index < D; ++ index ) {
-    std::string name = dg . parameter () . network () . name ( index );
-    index_by_name [ name ] = index;
-  }
-  // Check if names are valid and set flags for exclude varibales
-  std::vector<bool> exclude (D, false);
-  for ( auto var_name : exclude_vars ) {
-    // Check if varibale name is valid
-    if ( index_by_name . count ( var_name ) == 0 ) {
-      throw std::runtime_error ( "Invalid variable name: " + var_name );
-    }
-    // Get variable index and set exclude to true
-    uint64_t index = index_by_name [ var_name ];
-    exclude [ index ] = true;
-  }
-
-  std::unordered_map<uint64_t, uint64_t> domain_to_vertex;
-  uint64_t N = dg . digraph() . size ();
-  for ( uint64_t domain = 0; domain < N; ++ domain ) {
-    uint64_t vertex_label = dg . label ( domain );
-    for ( auto var_name : exclude_vars ) {
-      uint64_t index = index_by_name [ var_name ];
-      // Clear bits index and index + D
-      vertex_label &= ~( (1LL << index) | (1LL << (index + D)) );
-      // vertex_label &= ~(1LL << index);
-      // vertex_label &= ~(1LL << (index + D));
-    }
-    data_ -> labels_ . push_back ( vertex_label );
-  }
-  digraph . resize ( N );
-  data_ -> event_ . resize ( N );
-  for ( uint64_t source = 0; source < N; ++ source ) {
-    for ( uint64_t target : dg . digraph() . adjacencies ( source ) ) {
-      if ( source == target ) continue; // Don't add self-edge to search graph.
-      digraph . add_edge ( source, target );
-      uint64_t edge_label = dg . label ( source, target );
-      uint64_t regulated_var = dg .regulator ( source, target );
-      // Set edge label to 0 if one of the exclude_vars
-      if ( exclude [ regulated_var ] ) {
-        edge_label = 0;
-      }
-      data_ -> event_ [ source ] [ target ] = edge_label;
-    }
-  }
-  digraph . finalize ();
-}
-
-void SearchGraph::
 assign ( DomainGraph dg, uint64_t morse_set_index ) {
   data_ . reset ( new SearchGraph_ );
   data_ -> dimension_ = dg . dimension ();
@@ -130,17 +79,17 @@ assign ( DomainGraph dg, uint64_t morse_set_index ) {
   for ( uint64_t domain : morse_set ) {
     domain_to_vertex [ domain ] = N ++;
     data_ -> labels_ . push_back ( dg . label ( domain ) );
-    //std::cout << "Domain " << domain << " is vertex " << domain_to_vertex [ domain ] << "\n";
+    // std::cout << "Domain " << domain << " is vertex " << domain_to_vertex [ domain ] << "\n";
   }
   digraph . resize ( N );
   data_ -> event_ . resize ( N );
   std::vector<uint64_t> domains ( N );
   for ( uint64_t source : morse_set ) {
-    uint64_t u = domain_to_vertex[source];
+    uint64_t u = domain_to_vertex [ source ];
     domains [ u ] = source;
     for ( uint64_t target : dg . digraph() . adjacencies ( source ) ) {
       if ( domain_to_vertex . count ( target ) ) {
-        uint64_t v = domain_to_vertex[target];
+        uint64_t v = domain_to_vertex [ target ];
         digraph . add_edge ( u, v );
         data_ -> event_ [ u ] [ v ] = dg . label ( source, target );
       }
@@ -177,6 +126,121 @@ assign ( DomainGraph dg, uint64_t morse_set_index ) {
     ss << "(" << u << ", " << v << ") has label " << mr.edge_labelstring(event(u,v)) << "(" << event(u,v) << ")\n";
     return ss.str();
   };
+}
+
+void SearchGraph::
+assign ( DomainGraph dg, std::vector<std::string> const& exclude_vars ) {
+  data_ . reset ( new SearchGraph_ );
+  uint64_t D = dg . dimension ();
+  data_ -> dimension_ = D;
+  Digraph & digraph = data_ -> digraph_;
+  // Create a node name to index map
+  std::unordered_map<std::string, uint64_t> index_by_name;
+  for ( uint64_t index = 0; index < D; ++ index ) {
+    std::string name = dg . parameter () . network () . name ( index );
+    index_by_name [ name ] = index;
+  }
+  // Check if names are valid and set flags for exclude varibales
+  std::vector<bool> exclude (D, false);
+  for ( auto var_name : exclude_vars ) {
+    // Check if varibale name is valid
+    if ( index_by_name . count ( var_name ) == 0 ) {
+      throw std::runtime_error ( "Invalid variable name: " + var_name );
+    }
+    // Get variable index and set exclude to true
+    uint64_t index = index_by_name [ var_name ];
+    exclude [ index ] = true;
+  }
+
+  uint64_t N = dg . digraph() . size ();
+  for ( uint64_t domain = 0; domain < N; ++ domain ) {
+    uint64_t vertex_label = dg . label ( domain );
+    for ( auto var_name : exclude_vars ) {
+      uint64_t index = index_by_name [ var_name ];
+      // Clear bits index and index + D
+      vertex_label &= ~( (1LL << index) | (1LL << (index + D)) );
+      // vertex_label &= ~(1LL << index);
+      // vertex_label &= ~(1LL << (index + D));
+    }
+    data_ -> labels_ . push_back ( vertex_label );
+  }
+  digraph . resize ( N );
+  data_ -> event_ . resize ( N );
+  for ( uint64_t source = 0; source < N; ++ source ) {
+    for ( uint64_t target : dg . digraph() . adjacencies ( source ) ) {
+      if ( source == target ) continue; // Don't add self-edge to search graph.
+      digraph . add_edge ( source, target );
+      uint64_t edge_label = dg . label ( source, target );
+      uint64_t regulated_var = dg .regulator ( source, target );
+      // Set edge label to 0 if regulated_var is one of the exclude_vars
+      if ( exclude [ regulated_var ] ) {
+        edge_label = 0;
+      }
+      data_ -> event_ [ source ] [ target ] = edge_label;
+    }
+  }
+  digraph . finalize ();
+}
+
+void SearchGraph::
+assign ( DomainGraph dg, uint64_t morse_set_index, std::vector<std::string> const& exclude_vars ) {
+  data_ . reset ( new SearchGraph_ );
+  uint64_t D = dg . dimension ();
+  data_ -> dimension_ = D;
+  MorseDecomposition md ( dg . digraph () );
+  auto const& morse_set = md . recurrent () [ morse_set_index ];
+  Digraph & digraph = data_ -> digraph_;
+  // Create a node name to index map
+  std::unordered_map<std::string, uint64_t> index_by_name;
+  for ( uint64_t index = 0; index < D; ++ index ) {
+    std::string name = dg . parameter () . network () . name ( index );
+    index_by_name [ name ] = index;
+  }
+  // Check if names are valid and set flags for exclude varibales
+  std::vector<bool> exclude (D, false);
+  for ( auto var_name : exclude_vars ) {
+    // Check if varibale name is valid
+    if ( index_by_name . count ( var_name ) == 0 ) {
+      throw std::runtime_error ( "Invalid variable name: " + var_name );
+    }
+    // Get variable index and set exclude to true
+    uint64_t index = index_by_name [ var_name ];
+    exclude [ index ] = true;
+  }
+
+  std::unordered_map<uint64_t, uint64_t> domain_to_vertex;
+  uint64_t N = 0;
+  for ( uint64_t domain : morse_set ) {
+    domain_to_vertex [ domain ] = N ++;
+    uint64_t vertex_label = dg . label ( domain );
+    for ( auto var_name : exclude_vars ) {
+      uint64_t index = index_by_name [ var_name ];
+      // Clear bits index and index + D
+      vertex_label &= ~( (1LL << index) | (1LL << (index + D)) );
+    }
+    data_ -> labels_ . push_back ( vertex_label );
+    // std::cout << "Domain " << domain << " is vertex " << domain_to_vertex [ domain ] << "\n";
+  }
+  digraph . resize ( N );
+  data_ -> event_ . resize ( N );
+  for ( uint64_t source : morse_set ) {
+    uint64_t u = domain_to_vertex [ source ];
+    for ( uint64_t target : dg . digraph() . adjacencies ( source ) ) {
+      if ( source == target ) continue; // Don't add self-edge to search graph.
+      if ( domain_to_vertex . count ( target ) ) {
+        uint64_t v = domain_to_vertex [ target ];
+        digraph . add_edge ( u, v );
+        uint64_t edge_label = dg . label ( source, target );
+        uint64_t regulated_var = dg .regulator ( source, target );
+        // Set edge label to 0 if regulated_var is one of the exclude_vars
+        if ( exclude [ regulated_var ] ) {
+          edge_label = 0;
+        }
+        data_ -> event_ [ u ] [ v ] = edge_label;
+      }
+    }
+  }
+  digraph . finalize ();
 }
 
 // TODO PROBLEM: This code is uncovered by tests.

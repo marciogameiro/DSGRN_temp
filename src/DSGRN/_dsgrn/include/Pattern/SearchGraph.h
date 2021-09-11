@@ -4,7 +4,7 @@
 /// 2016-03-19
 ///
 /// Marcio Gameiro
-/// 2021-08-19
+/// 2021-09-10
 
 #pragma once
 
@@ -22,16 +22,20 @@ public:
   SearchGraph ( void );
 
   /// SearchGraph
-  ///   Create search graph from a domain graph and a morse set index
+  ///   Create search graph from a domain graph
   SearchGraph ( DomainGraph dg );
+
+  /// SearchGraph
+  ///   Create search graph from a domain graph and a morse set index
+  SearchGraph ( DomainGraph dg, uint64_t morse_set_index );
 
   /// SearchGraph
   ///   Create search graph from a domain graph excluding some variables
   SearchGraph ( DomainGraph dg, std::vector<std::string> const& exclude_vars );
 
   /// SearchGraph
-  ///   Create search graph from a domain graph and a morse set index
-  SearchGraph ( DomainGraph dg, uint64_t morse_set_index );
+  ///   Create search graph from a domain graph and a morse set index excluding some variables
+  SearchGraph ( DomainGraph dg, uint64_t morse_set_index, std::vector<std::string> const& exclude_vars );
 
   /// SearchGraph
   ///   Create search graph from a sequence of labels
@@ -44,14 +48,19 @@ public:
   assign ( DomainGraph dg );
 
   /// assign
+  ///   Create search graph from a domain graph and a morse set index
+  void
+  assign ( DomainGraph dg, uint64_t morse_set_index );
+
+  /// assign
   ///   Create search graph from a domain graph excluding some variables
   void
   assign ( DomainGraph dg, std::vector<std::string> const& exclude_vars );
 
   /// assign
-  ///   Create search graph from a domain graph and a morse set index
+  ///   Create search graph from a domain graph and a morse set index excluding some variables
   void
-  assign ( DomainGraph dg, uint64_t morse_set_index );
+  assign ( DomainGraph dg, uint64_t morse_set_index, std::vector<std::string> const& exclude_vars );
 
   /// assign
   ///   Create search graph from a sequence of labels
@@ -142,6 +151,7 @@ SearchGraphBinding (py::module &m) {
     .def(py::init<DomainGraph const&>())
     .def(py::init<DomainGraph const&, uint64_t>())
     .def(py::init<DomainGraph const&, std::vector<std::string> const&>())
+    .def(py::init<DomainGraph const&, uint64_t, std::vector<std::string> const&>())
     .def(py::init<std::vector<uint64_t> const&, uint64_t>())
     .def("size", &SearchGraph::size)
     .def("dimension", &SearchGraph::dimension)
