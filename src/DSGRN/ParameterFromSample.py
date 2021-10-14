@@ -1,7 +1,7 @@
 # ParameterFromSample.py
 # Marcio Gameiro and Lun Zhang
 # MIT LICENSE
-# 2021-05-05
+# 2021-10-14
 
 import DSGRN
 import numpy as np
@@ -55,7 +55,7 @@ def evalMask(sample, masks):
                     tempSum += sample[currPos][0]
                 else:
                     tempSum += sample[currPos][1]
-                currPos +=1
+                currPos += 1
             currVal *= tempSum
         ret.append(currVal)
     return ret
@@ -65,16 +65,16 @@ def binSort(x):
     for i in range(len(x)):
         if x[i] < 0:
             x[prev:i] = sorted(x[prev:i])
-            prev = i+1            
+            prev = i + 1
     lgt = len(x)
     x[prev:lgt] = sorted(x[prev:lgt])
     return x
 
 def nodeRegion(logic, samples, thetas):
     masks = indexMask(logic)
-    tempVals = evalMask(samples,masks)    
+    tempVals = evalMask(samples,masks)
     if len(np.unique(tempVals)) != len(tempVals):
-        return False
+        return None
     rthetas = thetas.copy()[::-1]
     tempOrd = np.argsort(tempVals+rthetas)
     for i in range(len(tempOrd)):
@@ -102,6 +102,9 @@ def par_index_from_sample_old(parameter_graph, L, U, T):
         L_U_values = [[L[s, d], U[s, d]] for s in inputs]
         T_values = [T[d, s] for s in outputs]
         node_region = nodeRegion(logics[d], L_U_values, T_values)
+        # Return -1 for invalid input
+        if node_region is None:
+            return -1
         # Get the thresholds from node_region
         thres = [p for p in node_region if p < 0]
         # Get thresholds permutation (order parameter)
@@ -118,7 +121,10 @@ def par_index_from_sample_old(parameter_graph, L, U, T):
     parameter = DSGRN.Parameter(logic_parameters, order_parameters, network)
     # Get parameter index from parameter graph
     par_index = parameter_graph.index(parameter)
-    return par_index
+    # Return parameter index if valid, else return -1
+    if par_index < parameter_graph.size():
+        return par_index
+    return -1
 
 def index_from_partial_orders(parameter_graph, partial_orders):
     network = parameter_graph.network()
@@ -154,7 +160,10 @@ def index_from_partial_orders(parameter_graph, partial_orders):
     parameter = DSGRN.Parameter(logic_parameters, order_parameters, network)
     # Get parameter index from parameter graph
     par_index = parameter_graph.index(parameter)
-    return par_index
+    # Return parameter index if valid, else return -1
+    if par_index < parameter_graph.size():
+        return par_index
+    return -1
 
 def par_index_from_sample(parameter_graph, L, U, T):
     network = parameter_graph.network()
@@ -174,6 +183,9 @@ def par_index_from_sample(parameter_graph, L, U, T):
         L_U_values = [[L[s, d], U[s, d]] for s in inputs]
         T_values = [T[d, s] for s in outputs]
         node_region = nodeRegion(logics[d], L_U_values, T_values)
+        # Return -1 for invalid input
+        if node_region is None:
+            return -1
         partial_orders.append(node_region)
     par_index = index_from_partial_orders(parameter_graph, partial_orders)
     return par_index
