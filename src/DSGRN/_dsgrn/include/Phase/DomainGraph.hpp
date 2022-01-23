@@ -1,6 +1,9 @@
 /// DomainGraph.hpp
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2022-01-18
 
 #pragma once
 
@@ -39,21 +42,31 @@ assign ( Parameter const& parameter ) {
   data_ -> labelling_ = parameter . labelling ();
   Digraph & digraph = data_ -> digraph_;
   std::vector<uint64_t> & labelling = data_ -> labelling_;
+  uint64_t left_wall_mask = (1LL << D) - 1; // Set the first D bits
   for ( uint64_t i = 0; i < N; ++ i ) {
-    if ( labelling [ i ] == 0 ) {
+    // Check if the left wall bits, (labelling [ i ] & left_wall_mask),
+    // and the right wall bits, (labelling [ i ] >> D), are all equal.
+    // This includes stable and unstable equilibrium cells.
+    if ( (labelling [ i ] & left_wall_mask) == (labelling [ i ] >> D) ) {
       digraph . add_edge ( i, i );
     }
+    // For stable equilibria only
+    // if ( labelling [ i ] == 0 ) {
+    //   digraph . add_edge ( i, i );
+    // }
     uint64_t leftbit = 1;
     uint64_t rightbit = (1LL << D);
     for ( int d = 0; d < D; ++ d, leftbit <<= 1, rightbit <<= 1 ) {
       if ( labelling [ i ] & rightbit ) {
         uint64_t j = i + jump[d];
+        // Do not add double edges
         if ( not (labelling [ j ] & leftbit) ) {
           digraph . add_edge ( i, j );
         }
       }
       if ( labelling [ i ] & leftbit ) {
         uint64_t j = i - jump[d];
+        // Do not add double edges
         if ( not (labelling [ j ] & rightbit) ) {
           digraph . add_edge ( i, j );
         }
@@ -97,10 +110,24 @@ label ( uint64_t domain ) const {
 INLINE_IF_HEADER_ONLY uint64_t DomainGraph::
 label ( uint64_t source, uint64_t target ) const {
   if ( source == target ) return 0;
-  uint64_t i = direction(source,target);
-  uint64_t j = regulator(source,target);
+  uint64_t i = direction(source, target);
+  uint64_t j = regulator(source, target);
   if ( i == j ) return 0;
-  return 1L << ( j + ( ((source < target) ^ parameter().network().interaction(i,j)) ? 0 : dimension() ) );
+  // Return 0 for no out-edge case
+  if ( j == dimension () ) return 0;
+  // Get instance of edge the edge from i to j
+  uint64_t inst = instance(source, target);
+  // Get interaction type of given instance of edge from i to j
+  bool interaction = parameter() . network() . interaction(i, j, inst);
+  // Check if the edge is a decay edge
+  bool decay = parameter() . network() . decay(i, j, inst);
+  // Get XNOR of !decay and ((source < target) ^ interaction),
+  // that is, if decay is false use ((source < target) ^ interaction)
+  // as bot_flag, and if decay is true we use the negation of
+  // ((source < target) ^ interaction) as the bit_flag
+  bool bit_flag = !((!decay) ^ ((source < target) ^ interaction));
+  // Set bit j or j + D according to bit_flag
+  return 1L << ( j + ( bit_flag ? 0 : dimension() ) );
 }
 
 INLINE_IF_HEADER_ONLY uint64_t DomainGraph::
@@ -114,10 +141,25 @@ regulator ( uint64_t source, uint64_t target ) const {
   if ( source == target ) return dimension ();
   std::vector<uint64_t> limits = data_ -> parameter_ . network() . domains ();
   uint64_t variable = direction ( source, target );
-  uint64_t domain = std::min(source,target);
-  for ( int d = 0; d < variable; ++ d ) domain = domain / limits[d];
+  uint64_t domain = std::min ( source, target );
+  for ( int d = 0; d < variable; ++ d ) {
+    domain = domain / limits[d];
+  }
   uint64_t threshold = domain % limits[variable];
   return data_ -> parameter_ . regulator ( variable, threshold );
+}
+
+INLINE_IF_HEADER_ONLY uint64_t DomainGraph::
+instance ( uint64_t source, uint64_t target ) const {
+  if ( source == target ) return dimension ();
+  std::vector<uint64_t> limits = data_ -> parameter_ . network() . domains ();
+  uint64_t variable = direction ( source, target );
+  uint64_t domain = std::min ( source, target );
+  for ( int d = 0; d < variable; ++ d ) {
+    domain = domain / limits[d];
+  }
+  uint64_t threshold = domain % limits[variable];
+  return data_ -> parameter_ . instance ( variable, threshold );
 }
 
 INLINE_IF_HEADER_ONLY Annotation const DomainGraph::

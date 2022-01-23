@@ -34,17 +34,20 @@ assign ( Network const& network ) {
   uint64_t D = data_ -> network_ . size ();
   for ( uint64_t d = 0; d < D; ++ d ) {
     uint64_t n = data_ -> network_ . inputs ( d ) . size ();
-    uint64_t m = data_ -> network_ . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = data_ -> network_ . outputs ( d ) . size () ? data_ -> network_ . outputs ( d ) . size () : 1;
     data_ -> order_place_bases_ . push_back ( _factorial ( m ) );
     data_ -> reorderings_ *= data_ -> order_place_bases_ . back ();
-    std::vector<std::vector<uint64_t>> const& logic_struct = data_ -> network_ . logic ( d );
+    auto const& logic_struct = data_ -> network_ . logic_by_index ( d );
     std::stringstream ss;
     ss << path << "/" << n <<  "_" << m;
     bool ptm_logic = false;
     for ( auto const& factor : logic_struct ) {
-      auto source = factor . front();
-      bool ptm_factor = data_ -> network_ . ptm ( source, d );
-      bool decay_factor = data_ -> network_ . decay ( source, d );
+      auto edge = factor . front();
+      uint64_t source = std::get<0>(edge);
+      uint64_t instance = std::get<1>(edge);
+      bool ptm_factor = data_ -> network_ . ptm ( source, d, instance );
+      bool decay_factor = data_ -> network_ . decay ( source, d, instance );
       if ( decay_factor and (not ptm_factor) ) { // Regular decay factor
         ss << "_" << factor . size() << "d";
         ptm_logic = true;
@@ -53,8 +56,10 @@ assign ( Network const& network ) {
         ss << "_";
         bool first = true;
         uint64_t n_edges = 0; // Number of regular edges in factor
-        for ( auto source : factor ) {
-          if ( data_ -> network_ . ptm ( source, d ) ) { // PTM pair edge
+        for ( auto edge : factor ) {
+          uint64_t source = std::get<0>(edge);
+          uint64_t instance = std::get<1>(edge);
+          if ( data_ -> network_ . ptm ( source, d, instance ) ) { // PTM pair edge
             if ( first ) { // Account for PTM pair
               ss << "2p";
               first = false;
@@ -167,7 +172,8 @@ parameter ( uint64_t index ) const {
   std::vector<OrderParameter> order;
   for ( uint64_t d = 0; d < D; ++ d ) {
     uint64_t n = data_ -> network_ . inputs ( d ) . size ();
-    uint64_t m = data_ -> network_ . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = data_ -> network_ . outputs ( d ) . size () ? data_ -> network_ . outputs ( d ) . size () : 1;
     std::string hex_code = data_ -> factors_ [ d ] [ logic_indices[d] ];
     LogicParameter logic_param ( n, m, hex_code );
     OrderParameter order_param ( m, order_indices[d] );

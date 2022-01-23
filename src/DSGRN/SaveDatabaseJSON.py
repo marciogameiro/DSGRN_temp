@@ -1,23 +1,24 @@
 # SaveDatabaseJSON.py
 # Marcio Gameiro
 # MIT LICENSE
-# 2021-03-26
+# 2021-07-11
 
 import DSGRN
 import pychomp2
 import itertools
 import json
 
+__all__ = ['DatabaseJSON', 'SaveDatabaseJSON']
+
 def dsgrn_cell_to_cc_cell_map(network):
     """Return a mapping from the top dimensional cells
     in the DSGRN complex to the top dimensional
     cells in the pychomp2 cubical complex.
     """
-
     # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp2).
-    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([n + 1 for n in network.domains()])
     dimension = network.size()
     # Mapping from DSGRN top cells to cc top cells
     cell2cc_cell = {}
@@ -38,12 +39,13 @@ def dsgrn_cell_to_cc_cell_map(network):
 
 def network_json(network):
     """Return json data for network."""
+    D = network.size()
     nodes = [] # Get network nodes
-    for d in range(network.size()):
+    for d in range(D):
         node = {"id" : network.name(d)}
         nodes.append(node)
     # Get network edges
-    edges = [(u, v) for u in range(network.size()) for v in network.outputs(u)]
+    edges = [(u, v) for u in range(D) for v in network.outputs(u)]
     links = []
     for (u, v) in edges:
         edge_type = 1 if network.interaction(u, v) else -1
@@ -51,10 +53,13 @@ def network_json(network):
                 "target" : network.name(v),
                 "type": edge_type}
         links.append(link)
-    network_json_data = {"network" : {"nodes" : nodes, "links" : links}}
+    # Get number of out-edges (treat the no out edge case as one out edge)
+    num_edges = sum([len(network.outputs(d)) if network.outputs(d) else 1 for d in range(D)])
+    param_dim = 3 * num_edges + D
+    network_json_data = {"network" : {"nodes" : nodes, "links" : links, "parameter_dim" : param_dim}}
     return network_json_data
 
-def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None):
+def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None, thres_type=''):
     """Return json data for parameter graph."""
     # Get list of vertices if none
     if vertices == None:
@@ -62,14 +67,18 @@ def parameter_graph_json(parameter_graph, vertices=None, verts_colors=None):
     # Set empty dictionary for verts_colors if none
     if verts_colors == None:
         verts_colors = {}
+    # Set thres_type to '' if not 'T'
+    if thres_type != 'T':
+        thres_type = '' # Uses the default 't' type
     all_edges = [(u, v) for u in vertices for v in parameter_graph.adjacencies(u, 'codim1') if v in vertices]
     # Remove double edges (all edges are double)
     edges = [(u, v) for (u, v) in all_edges if u > v]
     nodes = []
     for v in vertices:
-        v_color = verts_colors[v] if v in verts_colors else "";
-        node = {"id" : v, "color" : v_color}
-        # node = {"id" : str(v), "color" : v_color}
+        v_color = verts_colors[v] if v in verts_colors else ""
+        v_ineqs = parameter_graph.parameter(v).partialorders(thres_type).split('\n')
+        node = {"id" : v, "color" : v_color, "inequalities" : v_ineqs}
+        # node = {"id" : str(v), "color" : v_color, "inequalities" : v_ineqs}
         nodes.append(node)
     links = []
     for (u, v) in edges:
@@ -86,7 +95,7 @@ def cubical_complex_json(network):
     # Construct a cubical complex using pychomp2. A cubical complex in pychomp2
     # does not contain the rightmost boundary, so make one extra layer of
     # cubes and ignore the last layer (called rightfringe in pychomp2).
-    cubical_complex = pychomp2.CubicalComplex([x + 1 for x in network.domains()])
+    cubical_complex = pychomp2.CubicalComplex([n + 1 for n in network.domains()])
     # Get vertices coordinates and set a
     # mapping from coords to its index in
     # the list of coordinates.
@@ -200,6 +209,17 @@ def morse_sets_json(network, morse_graph, morse_decomposition):
     morse_sets_json_data = {"morse_sets" : morse_sets_data}
     return morse_sets_json_data
 
+def equilibrium_cells_json(parameter, morse_sets_data):
+    """Return json data for Equilibrium cells."""
+    # Get indices of all equilibrium cells
+    eq_cells = DSGRN.EquilibriumCells(parameter, 'all', 'index')
+    # Get Morse cells from the Morse sets
+    morse_cells = [cell for morse_set in morse_sets_data for cell in morse_set["cells"]]
+    # Get equilibrium cells that are not part of a Morse set
+    equilibrium_cells = [cell for cell in eq_cells if cell not in morse_cells]
+    eq_cells_json_data = {"equilibrium_cells" : equilibrium_cells}
+    return eq_cells_json_data
+
 def state_transition_graph_json(network, domain_graph):
     """Return json data for state transiton graph."""
     # Get a mapping from DSGRN top cells to cc top cells
@@ -214,16 +234,17 @@ def state_transition_graph_json(network, domain_graph):
     stg_json_data = {"stg" : stg}
     return stg_json_data
 
-def save_morse_graph_database_json(parameter_graph, database_fname, param_indices=None):
-    if parameter_graph.dimension() not in [2, 3]:
-        print('Only networks of dimension 2 or 3 are allowed!')
+def DatabaseJSON(network, param_indices=None, verts_colors=None, eq_cells=False, thres_type=''):
+    if network.size() not in [2, 3]:
+        print('Only available for dimensions 2 and 3!')
         return
-    network = parameter_graph.network()
+    parameter_graph = DSGRN.ParameterGraph(network)
+    # Use all parameter indices if None
     if param_indices == None:
         param_indices = range(parameter_graph.size())
     network_json_data = network_json(network)
     cell_complex_json_data = cubical_complex_json(network)
-    param_graph_json_data = parameter_graph_json(parameter_graph, param_indices)
+    param_graph_json_data = parameter_graph_json(parameter_graph, param_indices, verts_colors, thres_type)
     dynamics_database = [] # Dynamics database
     for par_index in param_indices:
         # Compute DSGRN dynamics
@@ -234,16 +255,26 @@ def save_morse_graph_database_json(parameter_graph, database_fname, param_indice
         morse_graph_json_data = morse_graph_json(morse_graph)
         morse_sets_json_data = morse_sets_json(network, morse_graph, morse_decomposition)
         stg_json_data = state_transition_graph_json(network, domain_graph)
+        if eq_cells: # Include equilibrium cells if true
+            eq_cells_json_data = equilibrium_cells_json(parameter, morse_sets_json_data["morse_sets"])
+        else:
+            eq_cells_json_data = {"equilibrium_cells" : []}
         # Dynamics data for this parameter
         dynamics_json_data = {"parameter" : par_index,
                               "morse_graph" : morse_graph_json_data["morse_graph"],
                               "morse_sets" : morse_sets_json_data["morse_sets"],
+                              "equilibrium_cells" : eq_cells_json_data["equilibrium_cells"],
                               "stg" : stg_json_data["stg"]}
         dynamics_database.append(dynamics_json_data)
     morse_graph_database = {"network" : network_json_data["network"],
                             "complex" : cell_complex_json_data["complex"],
                             "parameter_graph" : param_graph_json_data["parameter_graph"],
                             "dynamics_database" : dynamics_database}
+    return morse_graph_database
+
+def SaveDatabaseJSON(network, database_fname, param_indices=None, verts_colors=None,
+                     eq_cells=False, thres_type=''):
+    morse_graph_database = DatabaseJSON(network, param_indices, verts_colors, eq_cells, thres_type)
     # Save database to a file
     with open(database_fname, 'w') as outfile:
         json.dump(morse_graph_database, outfile)

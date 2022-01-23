@@ -29,6 +29,7 @@ from DSGRN.ParameterPartialOrders import *
 from DSGRN.ParameterFromSample import *
 from DSGRN.SaveDatabaseJSON import *
 from DSGRN.NetworkSpecificationPTM import *
+from DSGRN.EquilibriumCells import *
 import sys
 import os
 import pickle

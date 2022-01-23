@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-06-29
+/// 2022-01-23
 
 #pragma once
 
@@ -37,7 +37,7 @@ assign ( std::string const& s ) {
 
 INLINE_IF_HEADER_ONLY void Network::
 load ( std::string const& filename ) {
-data_ . reset ( new Network_ );
+  data_ . reset ( new Network_ );
   std::ifstream infile ( filename );
   if ( not infile . good () ) {
     throw std::runtime_error ( "Problem loading network specification file " + filename );
@@ -52,32 +52,52 @@ data_ . reset ( new Network_ );
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
 size ( void ) const {
-  return data_ ->  name_by_index_ . size ();
+  return data_ -> name_by_index_ . size ();
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
 index ( std::string const& name ) const {
-  return data_ ->  index_by_name_ . find ( name ) -> second;
+  return data_ -> index_by_name_ . find ( name ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY std::string const& Network::
 name ( uint64_t index ) const {
-  return data_ ->  name_by_index_[index];
+  return data_ -> name_by_index_[index];
 }
 
 INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& Network::
 inputs ( uint64_t index ) const {
-  return data_ ->  inputs_[index];
+  return data_ -> inputs_[index];
 }
 
 INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& Network::
 outputs ( uint64_t index ) const {
-  return data_ ->  outputs_[index];
+  return data_ -> outputs_[index];
 }
 
-INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> const& Network::
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> const& Network:: 
+input_instances ( uint64_t index ) const {
+  return data_ -> input_instances_[index];
+}
+
+INLINE_IF_HEADER_ONLY std::vector<std::vector<uint64_t>> Network::
 logic ( uint64_t index ) const {
-  return data_ ->  logic_by_index_ [ index ];
+  std::vector<std::vector<uint64_t>> logic_struct;
+  for ( auto const& factor : logic_by_index ( index ) ) {
+    std::vector<uint64_t> logic_factor;
+    for ( auto edge : factor ) {
+      uint64_t source = std::get<0>(edge);
+      // uint64_t instance = std::get<1>(edge);
+      logic_factor . push_back ( source );
+    }
+    logic_struct . push_back ( logic_factor );
+  }
+  return logic_struct;
+}
+
+INLINE_IF_HEADER_ONLY std::vector<std::vector<std::pair<uint64_t,uint64_t>>> const& Network::
+logic_by_index ( uint64_t index ) const {
+  return data_ -> logic_by_index_ [ index ];
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
@@ -86,30 +106,35 @@ essential ( uint64_t index ) const {
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
-interaction ( uint64_t source, uint64_t target ) const {
-  return data_ -> edge_type_ . find ( std::make_pair ( source, target ) ) -> second;
+interaction ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> edge_type_ . find ( std::make_tuple ( source, target, instance ) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
-ptm ( uint64_t source, uint64_t target ) const {
-  return data_ -> ptm_edge_ . find ( std::make_pair ( source, target ) ) -> second;
+ptm ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> ptm_edge_ . find ( std::make_tuple ( source, target, instance ) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY bool Network::
-decay ( uint64_t source, uint64_t target ) const {
-  return data_ -> decay_edge_ . find ( std::make_pair ( source, target ) ) -> second;
+decay ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ -> decay_edge_ . find ( std::make_tuple ( source, target, instance ) ) -> second;
 }
 
 INLINE_IF_HEADER_ONLY uint64_t Network::
-order ( uint64_t source, uint64_t target ) const {
-  return data_ ->  order_ . find ( std::make_pair ( source, target ) ) -> second;
+num_thresholds ( uint64_t index ) const {
+  return data_ -> num_thresholds_ [ index ];
 }
 
-INLINE_IF_HEADER_ONLY  std::vector<uint64_t> Network::
+INLINE_IF_HEADER_ONLY uint64_t Network::
+order ( uint64_t source, uint64_t target, uint64_t instance ) const {
+  return data_ ->  order_ . find ( std::make_tuple (source, target, instance) ) -> second;
+}
+
+INLINE_IF_HEADER_ONLY std::vector<uint64_t> Network::
 domains ( void ) const {
   std::vector<uint64_t> result;
-  for ( auto const& output : data_ ->  outputs_ ) {
-    result . push_back ( output . size () + 1);
+  for ( auto n_thresholds : data_ -> num_thresholds_ ) {
+    result . push_back ( n_thresholds + 1 );
   }
   return result;
 }
@@ -143,19 +168,21 @@ graphviz ( std::string const& join_type, std::vector<std::string> const& theme )
   uint64_t num_ptm_pairs = 0;
   // std::cout << "graphviz. Looping through edges.\n";
   for ( uint64_t target = 0; target < size (); ++ target ) {
-    std::vector<std::vector<uint64_t>> logic_struct = logic ( target );
+    std::vector<std::vector<std::pair<uint64_t,uint64_t>>> logic_struct = logic_by_index ( target );
     std::reverse ( logic_struct . begin (), logic_struct . end () ); // prefer black
     uint64_t partnum = 0;
-    for ( auto const& part : logic_struct ) {
+    for ( auto const& factor : logic_struct ) {
       bool first = true;
       uint64_t new_node1;
       uint64_t new_node2;
       uint64_t new_node3;
       uint64_t ptm_source1;
       uint64_t ptm_source2;
-      for ( uint64_t source : part ) {
+      for ( auto edge : factor ) {
+        uint64_t source = std::get<0>(edge);
+        uint64_t instance = std::get<1>(edge);
         // std::cout << "Checking type of edge from " << source << " to " << target << "\n";
-        if ( ptm (source, target) ) {
+        if ( ptm (source, target, instance) ) {
           if ( first ) { // PTM pair found
             ptm_source1 = source; // First node of PTM pair
             // Add additional node(s) to join pair
@@ -179,17 +206,17 @@ graphviz ( std::string const& join_type, std::vector<std::string> const& theme )
           }
           else {
             ptm_source2 = source; // Second node of PTM pair
-            std::string line_style = solid;
+            std::string line_style = decay (ptm_source1, target, instance) ? dashed : solid;
             if ( join_node == "p" ) { // Add 3 extra edges
               // Add edge from source1 to intermediate node 1
-              std::string head1 = interaction (ptm_source1, target) ? normalhead : blunthead;
+              std::string head1 = interaction (ptm_source1, target, instance) ? normalhead : blunthead;
               edges << "\"" << name(ptm_source1) << "\" -> \"" << new_node1 << "\" [color=" << theme[partnum + 2]
                     << ", style=" << line_style << ", arrowhead=" << head1 << ", weight=0, headport=n];\n";
               // Add edge from intermediate node 1 to intermediate node 3
               edges << "\"" << new_node1 << "\" -> \"" << new_node3 << "\" [color=" << theme[partnum + 2]
                     << ", style=" << line_style << ", dir=none, weight=0, tailport=s, headport=n];\n";
               // Add edge from source2 to intermediate node 2
-              std::string head2 = interaction (ptm_source2, target) ? normalhead : blunthead;
+              std::string head2 = interaction (ptm_source2, target, instance) ? normalhead : blunthead;
               edges << "\"" << name(ptm_source2) << "\" -> \"" << new_node2 << "\" [color=" << theme[partnum + 2]
                     << ", style=" << line_style << ", arrowhead=" << head2 << ", weight=0, headport=n];\n";
               // Add edge from intermediate node 2 to intermediate node 3
@@ -203,11 +230,11 @@ graphviz ( std::string const& join_type, std::vector<std::string> const& theme )
             }
             else { // Add 1 extra edge
               // Add edge from source1 to the intermediate node
-              std::string head1 = interaction (ptm_source1, target) ? normalhead : blunthead;
+              std::string head1 = interaction (ptm_source1, target, instance) ? normalhead : blunthead;
               edges << "\"" << name(ptm_source1) << "\" -> \"" << new_node1 << "\" [color=" << theme[partnum + 2]
                     << ", style=" << line_style << ", arrowhead=" << head1 << "];\n";
               // Add edge from source2 to the intermediate node
-              std::string head2 = interaction (ptm_source2, target) ? normalhead : blunthead;
+              std::string head2 = interaction (ptm_source2, target, instance) ? normalhead : blunthead;
               edges << "\"" << name(ptm_source2) << "\" -> \"" << new_node1 << "\" [color=" << theme[partnum + 2]
                     << ", style=" << line_style << ", arrowhead=" << head2 << "];\n";
               // Do not use self edges in ranking the nodes
@@ -220,8 +247,8 @@ graphviz ( std::string const& join_type, std::vector<std::string> const& theme )
           }
         }
         else {
-          std::string head = interaction (source, target) ? normalhead : blunthead;
-          std::string line_style = decay (source, target) ? dashed : solid;
+          std::string head = interaction (source, target, instance) ? normalhead : blunthead;
+          std::string line_style = decay (source, target, instance) ? dashed : solid;
           edges << "\"" << name(source) << "\" -> \"" << name(target) << "\" [color=" << theme[partnum + 2]
                 << ", style=" << line_style << ", arrowhead=" << head << "];\n";
         }
@@ -281,6 +308,9 @@ _lines ( void ) {
 INLINE_IF_HEADER_ONLY void Network::
 _parse ( std::vector<std::string> const& lines ) {
   using namespace DSGRN_parse_tools;
+  // Edge type to locally store edge information
+  // (source, parity, ptm_edge, decay_edge)
+  typedef std::tuple<uint64_t,bool,bool,bool> EdgeTuple;
   std::vector<std::string> logic_strings;
   std::map<std::string, bool> essential_nodes;
   // std::vector<std::string> constraint_strings;
@@ -312,8 +342,8 @@ _parse ( std::vector<std::string> const& lines ) {
   // Index the node names
   uint64_t loop_index = 0;
   data_ -> essential_ . resize ( essential_nodes . size () );
-  for ( auto const& name : data_ -> name_by_index_ ) {
-    data_ ->  index_by_name_ [ name ] = loop_index;
+  for ( auto const& name : data_ ->  name_by_index_ ) {
+    data_ -> index_by_name_ [ name ] = loop_index;
     data_ -> essential_ [ loop_index ] = essential_nodes [ name ];
     ++ loop_index;
   }
@@ -325,9 +355,12 @@ _parse ( std::vector<std::string> const& lines ) {
   // Example: < a + b > + [c, d] e
   uint64_t target = 0;
   for ( auto const& logic_string : logic_strings ) {
-    //std::cout << "Processing " << logic_string << "\n";
-    std::vector<std::vector<uint64_t>> logic_struct;
-    std::vector<uint64_t> factor;
+    // std::cout << "Processing " << logic_string << "\n";
+    // Final input logic structure to a node: (source, instance)
+    std::vector<std::vector<std::pair<uint64_t,uint64_t>>> logic_by_index;
+    // Intermediate (temporary) logic structure
+    std::vector<std::vector<EdgeTuple>> logic_struct;
+    std::vector<EdgeTuple> factor;
     std::string token;
     uint64_t ptm_term_size = 0;   // Size of PTM term
     uint64_t commas_found = 0;    // Number of commas in PTM term
@@ -341,53 +374,51 @@ _parse ( std::vector<std::string> const& lines ) {
     bool parity = true;
     bool appending = true;
 
-    auto sort_factor_ptm = [&] () {
-      std::vector<std::vector<uint64_t>> ptm_pairs;
-      std::vector<uint64_t> regular_edges;
-      std::vector<uint64_t> pair;
+    auto sort_factor = [&] () {
+      std::vector<std::vector<EdgeTuple>> ptm_pairs;
+      std::vector<EdgeTuple> regular_edges;
       uint64_t k = 0;
       while ( k < factor . size() ) {
-        uint64_t source = factor [k];
-        if ( ptm ( source, target ) ) {
-          uint64_t source2 = factor [k + 1];
-          pair . push_back ( source );
-          pair . push_back ( source2 );
-          // Don't sort PTM pairs
+        EdgeTuple edge1 = factor [k];
+        // Check if it is a PTM edge
+        bool ptm_flag = std::get<2>(edge1);
+        if ( ptm_flag ) {
+          EdgeTuple edge2 = factor [k + 1];
+          std::vector<EdgeTuple> pair = { edge1, edge2 };
+          // Do not sort edges in a PTM pair
           ptm_pairs . push_back ( pair );
-          pair . clear ();
           k += 2;
         }
         else {
-          regular_edges . push_back ( source );
+          regular_edges . push_back ( edge1 );
           k++;
         }
       }
-      // Sort PTM pairs by firts element
-      auto cmp_pairs = [](const auto& lhs, const auto& rhs) {
-        return lhs [0] < rhs [0];
+      // Sort PTM pairs by source (first entry) of first element
+      auto cmp_pairs = [](auto const& lhs, auto const& rhs) {
+        return std::get<0>(lhs [0]) < std::get<0>(rhs [0]);
       };
       std::sort ( ptm_pairs . begin(), ptm_pairs . end(), cmp_pairs );
-      std::sort ( regular_edges . begin(), regular_edges . end() );
+      // Sort edge tuples by source (first entry)
+      auto cmp_edges = [](auto const& e1, auto const& e2) {
+        return std::get<0>(e1) < std::get<0>(e2);
+      };
+      std::sort ( regular_edges . begin(), regular_edges . end(), cmp_edges );
       factor . clear ();
       // Put PTM edges before regular edges
-      for ( auto p : ptm_pairs ) {
-        factor . push_back ( p[0] );
-        factor . push_back ( p[1] );
+      for ( auto pair : ptm_pairs ) {
+        factor . push_back ( pair[0] );
+        factor . push_back ( pair[1] );
       }
-      for ( auto source : regular_edges ) {
-        factor . push_back ( source );
+      for ( auto edge : regular_edges ) {
+        factor . push_back ( edge );
       }
     };
 
     auto flush_factor = [&] () {
       if ( factor . empty () ) return;
       // Put factor into canonical ordering
-      if ( ptm_factor ) {
-        sort_factor_ptm ();
-      }
-      else {
-        std::sort ( factor.begin(), factor.end() );
-      }
+      sort_factor ();
       logic_struct . push_back ( factor );
       // std::cout << "    Flushing factor ";
       // for ( uint64_t i : factor ) std::cout << name ( i ) << " ";
@@ -405,10 +436,11 @@ _parse ( std::vector<std::string> const& lines ) {
                                    " Invalid input variable " + token );
       }
       uint64_t source = data_ -> index_by_name_ [ token ];
-      factor . push_back ( source );
-      data_ -> edge_type_ [std::make_pair( source, target )] = parity;
-      data_ -> ptm_edge_ [std::make_pair( source, target )] = ptm_edge;
-      data_ -> decay_edge_ [std::make_pair( source, target )] = decay_edge;
+      factor . push_back ( std::make_tuple(source, parity, ptm_edge, decay_edge) );
+      // factor . push_back ( source );
+      // data_ -> edge_type_ [std::make_pair( source, target )] = parity;
+      // data_ -> ptm_edge_ [std::make_pair( source, target )] = ptm_edge;
+      // data_ -> decay_edge_ [std::make_pair( source, target )] = decay_edge;
       // std::cout << "Creating edge from " << source << " to " << target << "\n";
       token . clear ();
       if ( ptm_edge ) ptm_term_size++;
@@ -501,97 +533,159 @@ _parse ( std::vector<std::string> const& lines ) {
     flush_token ();
     flush_factor ();
     // std::cout << "The logic_struct formed.\n";
-    // Ensure logic_struct is acceptable (no repeats!)
-    std::unordered_set<uint64_t> inputs;
-    for ( auto const& factor : logic_struct ) {
-      // std::cout << "# ";
-      for ( auto i : factor ) {
-        // std::cout << i << " ";
-        if ( inputs . count ( i ) ) {
-          throw std::runtime_error ( "Problem parsing network specification file: Repeated inputs in logic" );
-        }
-        inputs . insert ( i );
-      }
-    }
-    // std::cout << "\n";
-    // std::cout << "The logic_struct is acceptable.\n";
-
-    // Compare partitions by (size, max), where size is length and max is maximum index
-    auto compare_partition = [](std::vector<uint64_t> const& lhs, std::vector<uint64_t> const& rhs) {
-      if ( lhs . size () < rhs . size () ) return true;
-      if ( lhs . size () > rhs . size () ) return false;
-      uint64_t max_lhs = * std::max_element ( lhs.begin(), lhs.end() );
-      uint64_t max_rhs = * std::max_element ( rhs.begin(), rhs.end() );
-      if ( max_lhs < max_rhs ) return true;
-      if ( max_lhs > max_rhs ) return false;  /* unreachable -> */ return false;
-    };
 
     // Check if factor is a decay factor
     auto decayfactor = [&](auto const& factor) {
-      for ( auto source : factor )
-        if ( decay ( source, target ) )
+      for ( auto edge : factor ) {
+        bool decay_flag = std::get<3>(edge);
+        if ( decay_flag )
           return true;
+      }
       return false;
     };
 
     // Check if factor is a ptm factor
     auto ptmfactor = [&](auto const& factor) {
-      for ( auto source : factor )
-        if ( ptm ( source, target ) )
+      for ( auto edge : factor ) {
+        bool ptm_flag = std::get<2>(edge);
+        if ( ptm_flag )
           return true;
+      }
+      return false;
+    };
+
+    // Get number of ptm edges in factor
+    auto num_ptm_edges = [&](auto const& factor) {
+      uint64_t num_ptmedges = 0;
+      for ( auto edge : factor ) {
+        bool ptm_flag = std::get<2>(edge);
+        if ( ptm_flag )
+          num_ptmedges += 1;
+      }
+      return num_ptmedges;
+    };
+
+    // Compare factors by (ptm size, size, max), where ptm size is the
+    // number of ptm pairs plus the number of regular edges, size is length,
+    // and max is maximum index, but put ptm decay factors first, regular
+    // decay factors second, ptm factors third, and regular factors last
+    auto cmp_factors = [&](auto const& lhs, auto const& rhs) {
+      // Put ptm decay factors first
+      if ( ( decayfactor ( lhs ) and ptmfactor ( lhs ) ) and
+           ( not decayfactor ( rhs ) or not ptmfactor ( rhs ) ) )
+        return true;
+      if ( ( decayfactor ( rhs ) and ptmfactor ( rhs ) ) and
+           ( not decayfactor ( lhs ) or not ptmfactor ( lhs ) ) )
+        return false;
+      // Put regular decay factors second
+      if ( decayfactor ( lhs ) and not decayfactor ( rhs ) )
+        return true;
+      if ( decayfactor ( rhs ) and not decayfactor ( lhs ) )
+        return false;
+      // Put ptm factors third
+      if ( ptmfactor ( lhs ) and not ptmfactor ( rhs ) )
+        return true;
+      if ( ptmfactor ( rhs ) and not ptmfactor ( lhs ) )
+        return false;
+      // Compare the remaining factors by (ptm size, size, max), where
+      // ptm size is the number of ptm pairs plus the number of regular
+      // edges, size is length, and max is maximum index.
+      // Compare ptm factors by number of ptm pairs plus regular edges
+      if ( ptmfactor ( lhs ) and ptmfactor ( rhs ) ) {
+        uint64_t n_ptm_edges_lhs = num_ptm_edges (lhs);
+        uint64_t n_ptm_edges_rhs = num_ptm_edges (rhs);
+        // Size of total order factor (num ptm pairs plus num regular edges)
+        uint64_t size_lhs = (n_ptm_edges_lhs / 2) + (lhs . size () - n_ptm_edges_lhs);
+        uint64_t size_rhs = (n_ptm_edges_rhs / 2) + (rhs . size () - n_ptm_edges_rhs);
+        if ( size_lhs < size_rhs )
+          return true;
+        if ( size_rhs < size_lhs )
+          return false;
+        // if ( num_ptm_edges ( lhs ) < num_ptm_edges ( rhs ) )
+        //   return true;
+        // if ( num_ptm_edges ( rhs ) < num_ptm_edges ( lhs ) )
+        //   return false;
+      }
+      // Next compare factors by size
+      if ( lhs . size () < rhs . size () ) return true;
+      if ( lhs . size () > rhs . size () ) return false;
+      // Compare edge tuples by source (first entry)
+      auto cmp_edges = [](auto const& e1, auto const& e2) {
+        return std::get<0>(e1) < std::get<0>(e2);
+      };
+      auto edge_max_lhs = * std::max_element ( lhs.begin(), lhs.end(), cmp_edges );
+      auto edge_max_rhs = * std::max_element ( rhs.begin(), rhs.end(), cmp_edges );
+      uint64_t max_lhs = std::get<0>(edge_max_lhs);
+      uint64_t max_rhs = std::get<0>(edge_max_rhs);
+      if ( max_lhs < max_rhs ) return true;
+      if ( max_lhs > max_rhs ) return false;
+      // Return false if same size and same max
       return false;
     };
 
     // Put the logic struct into a canonical ordering
-    std::sort ( logic_struct.begin(), logic_struct.end(), compare_partition );
-    // Put ptm decay factors first, regular decay factors second,
-    // ptm factors third, and regular factors last
-    if ( decay_term || ptm_term ) { // If there is a decay or ptm term
-      std::vector<std::vector<uint64_t>> ptm_decay_factors;
-      std::vector<std::vector<uint64_t>> decay_factors;
-      std::vector<std::vector<uint64_t>> ptm_factors;
-      std::vector<std::vector<uint64_t>> regular_factors;
-      for ( auto const& factor : logic_struct ) {
-        if ( decayfactor ( factor ) and ptmfactor ( factor ) ) {
-          ptm_decay_factors . push_back ( factor );
+    std::sort ( logic_struct.begin(), logic_struct.end(), cmp_factors );
+    // Transform the logic structure to its final format: (source, instance)
+    // Keep track of repeated inputs to target
+    std::unordered_map<uint64_t, uint64_t> input_counts;
+    for ( auto const& logic_factor : logic_struct ) {
+        // Represent input edges by a pair (source, instance)
+        std::vector<std::pair<uint64_t,uint64_t>> factor;
+        for ( auto edge : logic_factor ) {
+          uint64_t source = std::get<0>(edge);
+          bool parity = std::get<1>(edge);
+          bool ptm_edge = std::get<2>(edge);
+          bool decay_edge = std::get<3>(edge);
+          uint64_t instance = 0; // Keep track of input instances
+          if ( input_counts . find (source) != input_counts . end() ) {
+            instance = input_counts . find (source) -> second;
+          }
+          input_counts [source] = instance + 1;
+          // Add edge (source, instance) to factor
+          factor . emplace_back ( source, instance );
+          // Keep track of parity, PTM edges, and decay edges
+          data_ -> edge_type_ [std::make_tuple( source, target, instance )] = parity;
+          data_ -> ptm_edge_ [std::make_tuple( source, target, instance )] = ptm_edge;
+          data_ -> decay_edge_ [std::make_tuple( source, target, instance )] = decay_edge;
         }
-        else if ( decayfactor ( factor ) ) {
-          decay_factors . push_back ( factor );
-        }
-        else if ( ptmfactor ( factor ) ) {
-          ptm_factors . push_back ( factor );
-        }
-        else {
-          regular_factors . push_back ( factor );
-        }
-      }
-      // Insert decay terms logic after the ptm decay terms logic
-      ptm_decay_factors . insert ( ptm_decay_factors . end (), decay_factors . begin (), decay_factors . end ());
-      // Insert ptm terms logic after the decay terms logic
-      ptm_decay_factors . insert ( ptm_decay_factors . end (), ptm_factors . begin (), ptm_factors . end ());
-      // Insert regular terms logic at the end
-      ptm_decay_factors . insert ( ptm_decay_factors . end (), regular_factors . begin (), regular_factors . end ());
-      // Incorporated sorted logic structure into the network
-      data_ -> logic_by_index_ . push_back ( ptm_decay_factors );
+        // Add factor to logic structure
+        logic_by_index . push_back ( factor );
     }
-    else {
-      // Incorporated sorted logic structure into the network
-      data_ -> logic_by_index_ . push_back ( logic_struct );
-    }
+
+    // Incorporated sorted logic structure into the network
+    data_ -> logic_by_index_ . push_back ( logic_by_index );
     // std::cout << "The logic_struct has been incorporated into the network.\n";
     ++ target;
-  }
-  // Compute inputs and outputs.
+  } // for ( auto const& logic_string : logic_strings )
+
+  // Compute inputs and outputs
   data_ -> inputs_ . resize ( size () );
   data_ -> outputs_ . resize ( size () );
-  for ( target = 0; target < size (); ++ target ) {
-    for ( auto const& factor : logic ( target ) ) {
-      for ( uint64_t source : factor ) {
-        data_ -> inputs_[target] . push_back ( source );
-        data_ -> outputs_[source] . push_back ( target );
-        data_ -> order_[std::make_pair(source,target)] = data_ -> outputs_[source] . size() - 1;
+  data_ -> input_instances_ . resize ( size () );
+  for ( uint64_t target = 0; target < size (); ++ target ) {
+    for ( auto const& factor : logic_by_index ( target ) ) {
+      for ( auto edge : factor ) {
+        uint64_t source = std::get<0>(edge);
+        uint64_t instance = std::get<1>(edge);
+        data_ -> inputs_ [target] . push_back ( source );
+        data_ -> outputs_ [source] . push_back ( target );
+        data_ -> input_instances_ [target] . push_back ( instance );
+        // Output order of this instance of edge (source, target)
+        data_ -> order_[std::make_tuple(source, target, instance)] = data_ -> outputs_[source].size() - 1;
       }
     }
+  }
+
+  // Set number of thresholds for each node
+  data_ -> num_thresholds_ . resize ( size () );
+  for ( uint64_t d = 0; d < size (); ++ d ) {
+    std::vector<uint64_t> outedges = outputs ( d );
+    // Treat the no out edge case as one out edge
+    uint64_t m = outedges . size() ? outedges . size() : 1;
+    // Get the number of self edges
+    uint64_t n_self_edges = std::count( outedges . begin(), outedges . end(), d );
+    // Each self edge creates an additional threshold
+    data_ -> num_thresholds_[d] = m + n_self_edges;
   }
   // std::cout << "_parse complete.\n";
 }
@@ -599,29 +693,31 @@ _parse ( std::vector<std::string> const& lines ) {
 INLINE_IF_HEADER_ONLY std::ostream& operator << ( std::ostream& stream, Network const& network ) {
   stream << "[";
   bool first1 = true;
-  for ( uint64_t v = 0; v < network.size (); ++ v ) {
+  for ( uint64_t v = 0; v < network . size (); ++ v ) {
     if ( first1 ) first1 = false; else stream << ",";
-    stream << "[\"" << network.name(v) << "\","; // node
-    std::vector<std::vector<uint64_t>> logic_struct = network.logic ( v );
+    stream << "[\"" << network . name(v) << "\","; // node
+    auto logic_struct = network . logic_by_index ( v );
     stream << "["; // logic_struct
     bool first2 = true;
-    for ( auto const& part : logic_struct ) {
+    for ( auto const& factor : logic_struct ) {
       if ( first2 ) first2 = false; else stream << ",";
       stream << "["; // factor
       bool first3 = true;
-      for ( uint64_t source : part ) {
+      for ( auto edge : factor ) {
         if ( first3 ) first3 = false; else stream << ",";
-        std::string head = network.interaction(source,v) ? "" : "~";
-        stream << "\"" << head << network.name(source) << "\"";
+        uint64_t source = std::get<0>(edge);
+        uint64_t instance = std::get<1>(edge);
+        std::string head = network . interaction(source, v, instance) ? "" : "~";
+        stream << "\"" << head << network . name(source) << "\"";
       }
       stream << "]"; // factor
     }
     stream << "],"; // logic_struct
     stream << "["; // outputs
     bool first4 = true;
-    for ( uint64_t target : network.outputs ( v ) ) {
+    for ( uint64_t target : network . outputs ( v ) ) {
       if ( first4 ) first4 = false; else stream << ",";
-      stream << "\"" << network.name(target) << "\"";
+      stream << "\"" << network . name(target) << "\"";
     }
     stream << "]"; // outputs
     stream << "]"; // node

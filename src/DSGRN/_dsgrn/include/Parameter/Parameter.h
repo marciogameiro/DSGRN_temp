@@ -1,8 +1,9 @@
 /// Parameter.h
 /// Shaun Harker
 /// 2015-05-24
+///
 /// Marcio Gameiro
-/// 2020-10-10
+/// 2022-01-18
 
 #pragma once
 
@@ -75,6 +76,21 @@ public:
   uint64_t
   regulator ( uint64_t variable, uint64_t threshold ) const;
 
+  /// instance
+  ///   Given adjacent domains, return the instance
+  ///   of the out edge corresponding the threshold
+  ///   separating the domains. Given the same domain 
+  ///   as both source and target, return dimension().
+  ///   Undefined behavior for non-adjacent domains.
+
+  /// instance
+  ///   Return the instance of the out edge corresponding to the
+  ///   threshold indicated, where "variable" is the normal to
+  ///   the threshold and "threshold" indicates which threshold,
+  ///   counting from lower to highest, starting from 0.
+  uint64_t
+  instance ( uint64_t variable, uint64_t threshold ) const;
+
   /// labelling
   ///   Returns a data structure representing if each wall is an
   ///   entrance or absorbing. The data structure is
@@ -105,7 +121,7 @@ public:
   void
   parse ( std::string const& str );
 
-  /// inpolynomial
+  /// input_polynomial
   ///   Given an input combination in to node d, return the algebraic
   ///   formula of U's and L's associated with that input combination.
   std::string
@@ -170,6 +186,7 @@ ParameterBinding (py::module &m) {
     .def("attracting", &Parameter::attracting)
     .def("absorbing", &Parameter::absorbing)
     .def("regulator", &Parameter::regulator)
+    .def("instance", &Parameter::instance)
     .def("labelling", &Parameter::labelling)
     .def("network", &Parameter::network)
     .def("stringify", &Parameter::stringify)

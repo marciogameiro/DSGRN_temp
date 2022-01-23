@@ -2,6 +2,9 @@
 /// Shaun Harker
 /// 2018-10-31
 /// MIT LICENSE
+///
+/// Marcio Gameiro
+/// 2021-01-30
 
 #include <iostream>
 #include <random>
@@ -38,7 +41,8 @@ ParameterSampler::assign
   for ( uint64_t d = 0; d < D; ++ d ) {
     // Construct CAD database file name for network node
     uint64_t n = network . inputs ( d ) . size ();
-    uint64_t m = network . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = network . outputs ( d ) . size () ? network . outputs ( d ) . size () : 1;
     std::vector<std::vector<uint64_t>> const& logic_struct = network . logic ( d );
     std::stringstream ss;
     ss << path << "/" << n <<  "_" << m;
@@ -48,7 +52,7 @@ ParameterSampler::assign
     CAD_Databases . push_back ( json () );
     json & J = CAD_Databases . back ();
     // Load the file into the json object
-    std::cout << "Reading " << ss.str () << "\n";
+    // std::cout << "Reading " << ss.str () << "\n";
     std::ifstream infile (ss.str());
     if ( not infile.good() ) {
       throw std::runtime_error("Missing CAD database " + ss.str() );
@@ -369,10 +373,15 @@ ParameterSampler::Name_Parameters
       // result[ "U[" + input_name + ", " + name + "]" ] = instance . at ("U[" + std::to_string(i+1) + "]");
     }
     // Handle output parameter (i.e. T)
-    uint64_t m = network . outputs ( d ) . size ();
+    // Treat the no out edge case as one out edge
+    uint64_t m = network . outputs ( d ) . size () ? network . outputs ( d ) . size () : 1;
     for ( uint64_t i = 0; i < m; ++ i ) {
-      uint64_t output = network . outputs(d) [ order[d](i) ];
-      std::string const& output_name = network . name ( output );
+      // For the no out edge case
+      std::string output_name = "";
+      if ( network . outputs ( d ) . size () ) {
+        uint64_t output = network . outputs(d) [ order[d](i) ];
+        output_name = network . name ( output );
+      }
       // Modify indexing output format
       result[ "T[" + name + "->" + output_name + "]" ] = instance . at ("T[" + std::to_string(i+1) + "]");
       // result[ "T[" + name + ", " + output_name + "]" ] = instance . at ("T[" + std::to_string(i+1) + "]");
@@ -415,11 +424,9 @@ ParameterSampler::sample
     // Obtain initial instance to seed Gibbs sampling with
     Instance const& instance = instancelookups[d].at(hex);
     // Perform Gibbs sampling
-    Instance sampled = Gibbs_Sampler ( hex, 
-                                       network.inputs(d).size(), 
-                                       network.outputs(d).size(), 
-                                       network.logic(d),
-                                       instance );
+    uint64_t m = network . outputs ( d ) . size () ? network . outputs ( d ) . size () : 1;
+    Instance sampled = Gibbs_Sampler ( hex, network.inputs(d).size(),
+                                       m, network.logic(d), instance );
     // Record parameters for network node
     instances . push_back ( sampled );
   }

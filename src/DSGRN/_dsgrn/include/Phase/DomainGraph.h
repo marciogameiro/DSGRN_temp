@@ -1,6 +1,9 @@
 /// DomainGraph.h
 /// Shaun Harker
 /// 2015-05-24
+///
+/// Marcio Gameiro
+/// 2022-01-18
 
 #pragma once
 
@@ -91,6 +94,15 @@ public:
   uint64_t
   regulator ( uint64_t source, uint64_t target ) const;
 
+  /// instance
+  ///   Given adjacent domains, return the instance
+  ///   of the out edge corresponding the threshold
+  ///   separating the domains. Given the same domain 
+  ///   as both source and target, return dimension().
+  ///   Undefined behavior for non-adjacent domains.
+  uint64_t
+  instance ( uint64_t source, uint64_t target ) const;
+
   /// annotate
   ///   Given a collection of vertices, return an
   ///   annotation describing them
@@ -138,6 +150,7 @@ DomainGraphBinding (py::module &m) {
     .def("label", (uint64_t(DomainGraph::*)(uint64_t,uint64_t)const)&DomainGraph::label)
     .def("direction", &DomainGraph::direction)
     .def("regulator", &DomainGraph::regulator)
+    .def("instance", &DomainGraph::instance)
     .def("annotate", &DomainGraph::annotate)
     .def("graphviz", &DomainGraph::graphviz)
     .def("__str__", [](DomainGraph * lp){ std::stringstream ss; ss << *lp; return ss.str(); });

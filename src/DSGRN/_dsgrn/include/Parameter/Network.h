@@ -3,7 +3,7 @@
 /// 2015-05-22
 ///
 /// Marcio Gameiro
-/// 2021-05-30
+/// 2021-07-13
 
 #pragma once
 
@@ -62,10 +62,20 @@ public:
   std::vector<uint64_t> const&
   outputs ( uint64_t index ) const;
 
+  /// input_instances
+  ///   Return a list of input instances to a node
+  std::vector<uint64_t> const&
+  input_instances ( uint64_t index ) const;
+
   /// logic
   ///   Return the logic of a node (given by index)
-  std::vector<std::vector<uint64_t>> const&
+  std::vector<std::vector<uint64_t>>
   logic ( uint64_t index ) const;
+
+  /// logic_by_index
+  ///   Return the logic_by_index of a node (given by index)
+  std::vector<std::vector<std::pair<uint64_t,uint64_t>>> const&
+  logic_by_index ( uint64_t index ) const;
 
   /// essential
   ///   Return whether or not to use only essential logic parameters
@@ -76,23 +86,28 @@ public:
   ///   Return the interaction type of an edge:
   ///   False for repression, true for activation
   bool
-  interaction ( uint64_t source, uint64_t target ) const;
+  interaction ( uint64_t source, uint64_t target, uint64_t instance ) const;
 
   /// ptm
   ///   Return true for a PTM edge and false otherwise
   bool
-  ptm ( uint64_t source, uint64_t target ) const;
+  ptm ( uint64_t source, uint64_t target, uint64_t instance ) const;
 
   /// decay
   ///   Return true for a decay edge and false otherwise
   bool
-  decay ( uint64_t source, uint64_t target ) const;
+  decay ( uint64_t source, uint64_t target, uint64_t instance ) const;
+
+  /// num_thresholds
+  ///   Return the number of thresholds
+  uint64_t
+  num_thresholds ( uint64_t index ) const;
 
   /// order
   ///   Return the out-edge order number of an edge, i.e. so
-  ///   outputs(source)[order(source,target)] == target
+  ///   outputs(source)[order(source,target,instance)] == target
   uint64_t
-  order ( uint64_t source, uint64_t target ) const;
+  order ( uint64_t source, uint64_t target, uint64_t instance ) const;
 
   /// domains
   ///   Return a list consisting of the number of 
@@ -129,13 +144,21 @@ private:
 struct Network_ {
   std::vector<std::vector<uint64_t>> inputs_;
   std::vector<std::vector<uint64_t>> outputs_;
+  std::vector<std::vector<uint64_t>> input_instances_;
   std::unordered_map<std::string, uint64_t> index_by_name_;
   std::vector<std::string> name_by_index_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> ptm_edge_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> decay_edge_;
-  std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
-  std::vector<std::vector<std::vector<uint64_t>>> logic_by_index_;
+  // Use (source, target, instance) to allow multiple edges
+  // TODO: Use unordered_map to make it more efficient
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, bool> edge_type_;
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, bool> ptm_edge_;
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, bool> decay_edge_;
+  std::map<std::tuple<uint64_t,uint64_t,uint64_t>, uint64_t> order_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> edge_type_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> ptm_edge_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, bool, dsgrn::hash<std::pair<uint64_t,uint64_t>>> decay_edge_;
+  // std::unordered_map<std::pair<uint64_t,uint64_t>, uint64_t, dsgrn::hash<std::pair<uint64_t,uint64_t>>> order_;
+  std::vector<std::vector<std::vector<std::pair<uint64_t,uint64_t>>>> logic_by_index_;
+  std::vector<uint64_t> num_thresholds_; // Number of thresholds
   std::vector<bool> essential_;
   std::string specification_;
 };
@@ -158,11 +181,14 @@ NetworkBinding (py::module &m) {
     .def("name", &Network::name)
     .def("inputs", &Network::inputs)
     .def("outputs", &Network::outputs)
+    .def("input_instances", &Network::input_instances)
     .def("logic", &Network::logic)
+    .def("logic_by_index", &Network::logic_by_index)
     .def("essential", &Network::essential)
     .def("interaction", &Network::interaction)
     .def("ptm", &Network::ptm)
     .def("decay", &Network::decay)
+    .def("num_thresholds", &Network::num_thresholds)
     .def("order", &Network::order)
     .def("domains", &Network::domains)
     .def("specification", &Network::specification)
