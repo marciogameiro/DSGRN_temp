@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2021-04-04
+/// 2022-02-08
 
 #pragma once
 
@@ -50,6 +50,26 @@ assign ( Parameter const& parameter ) {
     if ( (labelling [ i ] & left_wall_mask) == (labelling [ i ] >> D) ) {
       digraph . add_edge ( i, i );
     }
+    else {
+      // For the ecology model we ignore the zero walls when adding
+      // self edges to a domain, that is, we add a self edge if the
+      // the directions normal to zero walls are all non-gradient.
+      // This adds equilibrium cells to the zero boundaries.
+      std::vector<uint64_t> coords = coordinates ( i );
+      uint64_t label = labelling [ i ];
+      for ( int d = 0; d < dimension(); ++ d ) {
+        if ( coords [ d ] == 0 ) {
+          // If a coordinate is zero, set the left and right
+          // wall bits, so they will not prevent a self edge
+          label |= (1LL << d);
+          label |= (1LL << (D+d));
+        }
+      }
+      // Check if the remaining left right wall bits are equal
+      if ( (label & left_wall_mask) == (label >> D) ) {
+        digraph . add_edge ( i, i );
+      }
+    }
     // For stable equilibria only
     // if ( labelling [ i ] == 0 ) {
     //   digraph . add_edge ( i, i );
@@ -95,7 +115,7 @@ INLINE_IF_HEADER_ONLY std::vector<uint64_t> DomainGraph::
 coordinates ( uint64_t domain ) const {
   std::vector<uint64_t> result ( dimension () );
   std::vector<uint64_t> limits = data_ -> parameter_ . network() . domains ();
-  for ( int d = 0; d < dimension(); ++ d ) { 
+  for ( int d = 0; d < dimension(); ++ d ) {
     result[d] = domain % limits[d];
     domain = domain / limits[d];
   }
