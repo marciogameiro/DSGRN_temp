@@ -3,7 +3,7 @@
 /// 2015-05-24
 ///
 /// Marcio Gameiro
-/// 2022-02-08
+/// 2022-02-09
 
 #pragma once
 
@@ -44,31 +44,26 @@ assign ( Parameter const& parameter ) {
   std::vector<uint64_t> & labelling = data_ -> labelling_;
   uint64_t left_wall_mask = (1LL << D) - 1; // Set the first D bits
   for ( uint64_t i = 0; i < N; ++ i ) {
+    // For the ecology model we ignore the zero walls when adding
+    // self edges to a domain, that is, we add a self edge if the
+    // the directions normal to zero walls are all non-gradient.
+    // This adds equilibrium cells to the zero boundaries.
+    std::vector<uint64_t> coords = coordinates ( i );
+    uint64_t label = labelling [ i ];
+    for ( int d = 0; d < dimension(); ++ d ) {
+      if ( coords [ d ] == 0 ) {
+        // If a coordinate is zero set the left and right wall
+        // bits so they are equal and do not prevent a self edge
+        label |= (1LL << d);
+        label |= (1LL << (D+d));
+      }
+    }
     // Check if the left wall bits, (labelling [ i ] & left_wall_mask),
     // and the right wall bits, (labelling [ i ] >> D), are all equal.
     // This includes stable and unstable equilibrium cells.
-    if ( (labelling [ i ] & left_wall_mask) == (labelling [ i ] >> D) ) {
+    // if ( (labelling [ i ] & left_wall_mask) == (labelling [ i ] >> D) ) {
+    if ( (label & left_wall_mask) == (label >> D) ) {
       digraph . add_edge ( i, i );
-    }
-    else {
-      // For the ecology model we ignore the zero walls when adding
-      // self edges to a domain, that is, we add a self edge if the
-      // the directions normal to zero walls are all non-gradient.
-      // This adds equilibrium cells to the zero boundaries.
-      std::vector<uint64_t> coords = coordinates ( i );
-      uint64_t label = labelling [ i ];
-      for ( int d = 0; d < dimension(); ++ d ) {
-        if ( coords [ d ] == 0 ) {
-          // If a coordinate is zero, set the left and right
-          // wall bits, so they will not prevent a self edge
-          label |= (1LL << d);
-          label |= (1LL << (D+d));
-        }
-      }
-      // Check if the remaining left right wall bits are equal
-      if ( (label & left_wall_mask) == (label >> D) ) {
-        digraph . add_edge ( i, i );
-      }
     }
     // For stable equilibria only
     // if ( labelling [ i ] == 0 ) {
