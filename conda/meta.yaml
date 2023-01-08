@@ -19,16 +19,15 @@ requirements:
     - python
   run:
     - python
-    - numpy
-    - scipy
-    - matplotlib
-    - graphviz
-    - progressbar2
-    - pychomp2
+    - numpy>=1.19
+    - scipy>=1.9
+    - matplotlib>=3.3
+    - graphviz>=0.16
+    - progressbar2>=4.0
 
 about:
-  home: {{ data['url'] }}
+  home: {{ data.get('url') }}
   license: MIT
-  # license: {{ data['license'] }}
+  # license: {{ data.get('license') }}
   license_file: LICENSE
-  summary: {{ data['description'] }}
+  summary: {{ data.get('description') }}
