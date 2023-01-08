@@ -13,8 +13,8 @@ build:
 
 requirements:
   build:
-    - python
-    - setuptools
+    # - python
+    # - setuptools
     - {{ compiler('cxx') }}
     # - gcc
     # - git
