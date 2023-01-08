@@ -1,5 +1,5 @@
-# Build and publish Conda package
-name: Publish Conda Package
+# Build and publish Conda packages
+name: Build and publish Conda packages
 
 on:
   push:

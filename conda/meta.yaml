@@ -2,10 +2,10 @@
 
 package:
   name: dsgrn
-  version: {{ data['version'] }}
+  version: {{ data.get('version') }}
 
 source:
-  path: ../src/DSGRN
+  path: ..
 
 build:
   number: 0
