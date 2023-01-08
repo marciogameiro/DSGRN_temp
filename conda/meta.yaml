@@ -13,10 +13,12 @@ build:
 
 requirements:
   build:
+    - python
+    - setuptools
     - {{ compiler('cxx') }}
-    - gcc
-    - git
-    - cmake
+    # - gcc
+    # - git
+    # - cmake
   host:
     - python
   run:
