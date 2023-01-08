@@ -9,12 +9,18 @@ on:
       - v* # Push events to v* tags
   workflow_dispatch:
 
-jobs:
-  publish:
+jobs:    
+  build_publish_conda:
+    name: Conda pacakges for Linux, macOS and Windows
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
-    - name: publish-to-conda
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Build and publish conda packages
       uses: fcakyon/conda-publish-action@v1.3
       with:
         subdir: 'conda'
